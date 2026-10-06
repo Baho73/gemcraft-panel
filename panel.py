@@ -281,6 +281,8 @@ def loop(interval):
         status.set(f"заморозка: сохранено {len(st['frames'])} кадров в freeze/seen_{stamp}_*")
         print(stamp, "ЗАМОРОЗКА отмечена", flush=True)
     tk.Button(row, text="Есть заморозка", command=saw_freeze).pack(side="right", padx=4)
+    params = tk.StringVar(value="")  # Иван: все параметры разом, как мана — что сейчас видит окно
+    tk.Label(root, textvariable=params, justify="left", anchor="w", font=("Consolas", 12, "bold")).pack(fill="x", padx=8)
     pic = tk.Label(root)
     pic.pack(padx=8)
     status = tk.StringVar(value="захват идёт")
@@ -367,7 +369,8 @@ def loop(interval):
         root.title("GemCraft: на паузе" if paused() else "GemCraft: игра идёт")
         for k, (ix, iy, iw, ih) in icons.items():
             icon = full[iy:iy + ih, ix:ix + iw]
-            if full_ev[k](icon_full(icon)) and checks[f"{k}_full"].get():
+            st[f"full_{k}"] = icon_full(icon)
+            if full_ev[k](st[f"full_{k}"]) and checks[f"{k}_full"].get():
                 event(stamp, t, f"{names.get(k, k)} индикатор заполнен", "indicator", k, "full")
             np_ = pluses(icon)
             if st.get(f"plus_{k}") != np_:  # разбор: каждое изменение числа плюсиков с картинкой значка
@@ -470,6 +473,18 @@ def loop(interval):
                     f.write(f"{pstamp}\t{ps}\t{number(ps)}\t{val}\n")  # 4-й столбец — принятое число
                 st["last"] = key
         st["pend"] = (stamp, s, gray)
+        game = {"run": "идёт", "pause": "пауза"}.get(st.get("state"), "не вижу кнопок")
+        lines = [f"Игра: {game}"]
+        lines += [f"{names.get(k, k).capitalize()} индикатор: плюсов {st.get(f'plus_{k}', 0)}, "
+                  f"рамка {'есть' if st.get(f'full_{k}') else 'нет'}" for k in icons]
+        lines.append(f"Светлое с: {'—' if top is None else top} (порог строки {'—' if wy is None else wy})")
+        lim_sat = secs(sat_var, FREEZE_SAT)
+        lines.append(f"Заморозка: {'есть' if frz < lim_sat else 'нет'}, тон {frz:.0f} (порог {lim_sat:g})"
+                     if frz is not None else "Заморозка: точка A не задана")
+        lines.append(f"Водоворотов в рамке: {len(found)}")
+        lines.append(f"Цепочка: {'идёт' if chain.on else 'ждёт'}, отложено событий: {len(policy.pending)}"
+                     + (f", жду отклика на пробел ({policy.awaiting})" if policy.awaiting else ""))
+        params.set("\n".join(lines))
         png = cv2.imencode(".png", cv2.resize(bgr, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST))[1]
         pic.image = tk.PhotoImage(data=base64.b64encode(png.tobytes()))
         pic.configure(image=pic.image)
