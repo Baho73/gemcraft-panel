@@ -564,6 +564,8 @@ def loop(interval):
 
 
 def test():
+    import pause_policy
+    pause_policy.self_check()  # сценарии политики паузы (M-PAUSE-POLICY)
     def render(s):
         img = np.zeros((40, 300), np.uint8)
         cv2.putText(img, s, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
