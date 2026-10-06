@@ -8,7 +8,8 @@
 #
 # START_MODULE_MAP
 #   PausePolicy - решение «пробел сейчас / присоединить / отложить» и учёт своих пробелов
-#   PausePolicy.request - событие паузы (рост маны, волна, индикатор…) -> 'sent' | 'joined' | 'deferred'
+#   PausePolicy.for_window - политика с пробелом в окно игры (M-CAPTURE)
+#   PausePolicy.request -событие паузы (рост маны, волна, индикатор…) -> 'sent' | 'joined' | 'deferred'
 #   PausePolicy.observe - каждый кадр: состояние игры; снимает ожидание отклика, выпускает отложенные события
 #   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся; её пробелы учитываются
 #   SPACE_WAIT - сколько ждать отклика игры на пробел
@@ -31,6 +32,12 @@ class PausePolicy:
         self.sent_at = 0.0
         self.chain = False        # идёт цепочка: её пробелы и шаги не перебивать
         self.pending = []         # отложенные события: (text, cols)
+
+    @classmethod
+    def for_window(cls, hwnd, **kw):
+        """Политика, которая жмёт пробел в окно игры — единственное место, где пробел привязан к окну."""
+        from capture import press_space
+        return cls(press=lambda: press_space(hwnd), **kw)
 
     # START_CONTRACT: request
     #   PURPOSE: Событие хочет поставить игру на паузу.
