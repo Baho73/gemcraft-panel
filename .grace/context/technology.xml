@@ -1,0 +1,10 @@
+<GraceTechnology graceVersion="4.0">
+  <Language>Python 3.12</Language>
+  <Runtime>Windows 11, Anaconda Python (python.exe / pythonw.exe), окно игры Adobe AIR</Runtime>
+  <Framework>OpenCV, NumPy, pywin32 (win32gui/win32ui), tkinter</Framework>
+  <TestingStack>встроенные проверки: python digit_grab.py test (самопроверка на синтетике) и python digit_grab.py check (сверка с кадрами, прочитанными глазами, digit_truth.json)</TestingStack>
+  <Observability>журналы TSV: digit_events.tsv (события и пробелы), digit_frames/log.tsv (мана), freeze/stats.tsv, waves/*.tsv; ошибки кадра — digit_errors.log; вывод консоли с метками ЦЕПОЧКА</Observability>
+  <OperationalConstraints>
+    <Constraint>Prefer existing project libraries and established repository patterns.</Constraint>
+  </OperationalConstraints>
+</GraceTechnology>

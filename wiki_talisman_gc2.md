@@ -1,0 +1,1084 @@
+- generic [ref=e1]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - button [ref=e2]:
+            - img [ref=e4]
+          - generic [ref=e6]:
+            - img "research" [ref=e8]
+            - generic [ref=e9]:
+              - paragraph [ref=e10]: Fandom is on a quest for your opinions on upcoming movies!
+              - link "We want to hear from you!" [ref=e11] [cursor=pointer]:
+                - /url: https://sw2.decipherinc.com/survey/selfserve/419f/250113
+            - button "Close" [ref=e12] [cursor=pointer]
+  - navigation "Fandom top navigation" [ref=e13]:
+    - link "Fandom homepage" [ref=e14] [cursor=pointer]:
+      - /url: https://www.fandom.com/
+      - img [ref=e15]
+    - generic [ref=e18]:
+      - textbox "Search" [ref=e19]
+      - img [ref=e20]
+    - generic [ref=e22]:
+      - link "Sign In" [ref=e24] [cursor=pointer]:
+        - /url: https://auth.fandom.com/signin?source=mw&redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29
+      - link "Register" [ref=e26] [cursor=pointer]:
+        - /url: https://auth.fandom.com/register?source=mw&redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29
+  - generic "Community navigation" [ref=e27]:
+    - link "Fandom homepage" [ref=e29] [cursor=pointer]:
+      - /url: https://www.fandom.com/
+      - img [ref=e30]
+    - link "Gemcraft Wiki" [ref=e32] [cursor=pointer]:
+      - /url: https://gemcraft.fandom.com/wiki/Gemcraft_Wiki
+    - navigation [ref=e33]:
+      - list [ref=e34]:
+        - listitem [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37] [cursor=pointer]:
+              - img [ref=e38]
+              - generic [ref=e40]: Explore
+            - img "Expand" [ref=e41]
+        - listitem [ref=e43]:
+          - generic [ref=e44]:
+            - link "Gemcraft" [ref=e45] [cursor=pointer]:
+              - /url: https://gemcraft.fandom.com/wiki/Gemcraft_Wiki
+              - generic [ref=e46]: Gemcraft
+            - img "Expand" [ref=e47]
+        - listitem [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e52] [cursor=pointer]: Community
+            - img "Expand" [ref=e53]
+    - generic [ref=e56]:
+      - textbox "Search" [ref=e57]
+      - img [ref=e58]
+    - generic [ref=e60]:
+      - link "Discuss" [ref=e61] [cursor=pointer]:
+        - /url: /f
+        - img
+      - link "Switch to Dark Theme" [ref=e62] [cursor=pointer]:
+        - /url: "#"
+        - img
+    - link "Sign In" [ref=e65] [cursor=pointer]:
+      - /url: https://auth.fandom.com/signin?source=mw&redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29
+      - generic [ref=e66]:
+        - img
+        - text: Sign In
+  - navigation "Fandom navigation" [ref=e69]:
+    - generic [ref=e70]:
+      - button "Menu" [ref=e72] [cursor=pointer]:
+        - generic [ref=e73]:
+          - img [ref=e75]
+          - generic [ref=e77]: Menu
+      - generic [ref=e78]:
+        - button "Explore" [expanded] [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]:
+            - img [ref=e82]
+            - generic [ref=e85]: Explore
+        - complementary [ref=e86]:
+          - generic [ref=e87]:
+            - heading "Explore" [level=2] [ref=e88]
+            - button "Hide" [ref=e90] [cursor=pointer]:
+              - img [ref=e91]
+            - generic [ref=e95]:
+              - generic [ref=e97]:
+                - link "Hextile X" [ref=e98] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Hextile_X
+                - generic [ref=e99]:
+                  - img "Hextile X" [ref=e101]
+                  - generic [ref=e102]:
+                    - heading "Hextile X" [level=3] [ref=e104]
+                    - generic [ref=e106]: Gemcraft Wiki
+              - generic [ref=e108]:
+                - link "Mana Shard" [ref=e109] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Mana_Shard
+                - generic [ref=e110]:
+                  - img "Mana Shard" [ref=e112]
+                  - generic [ref=e113]:
+                    - heading "Mana Shard" [level=3] [ref=e115]
+                    - generic [ref=e117]: Gemcraft Wiki
+              - generic [ref=e119]:
+                - link "Pioneer Farms" [ref=e120] [cursor=pointer]:
+                  - /url: http://empiretotalwar.fandom.com/wiki/Pioneer_Farms
+                - generic [ref=e121]:
+                  - img "Pioneer Farms" [ref=e123]
+                  - generic [ref=e124]:
+                    - heading "Pioneer Farms" [level=3] [ref=e126]
+                    - generic [ref=e128]: Empire - Total War
+              - generic [ref=e130]:
+                - link "Tome Chambers (GC2)" [ref=e131] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Tome_Chambers_(GC2)
+                - generic [ref=e132]:
+                  - img "Tome Chambers (GC2)" [ref=e134]
+                  - generic [ref=e135]:
+                    - heading "Tome Chambers (GC2)" [level=3] [ref=e137]
+                    - generic [ref=e139]: Gemcraft Wiki
+              - generic [ref=e141]:
+                - link "List of Vision Fields (GC 2)" [ref=e142] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/List_of_Vision_Fields_(GC_2)
+                - generic [ref=e143]:
+                  - img "List of Vision Fields (GC 2)" [ref=e145]
+                  - generic [ref=e146]:
+                    - heading "List of Vision Fields (GC 2)" [level=3] [ref=e148]
+                    - generic [ref=e150]: Gemcraft Wiki
+              - generic [ref=e152]:
+                - link "Sleeping Hive" [ref=e153] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Sleeping_Hive
+                - generic [ref=e154]:
+                  - img "Sleeping Hive" [ref=e156]
+                  - generic [ref=e157]:
+                    - heading "Sleeping Hive" [level=3] [ref=e159]
+                    - generic [ref=e161]: Gemcraft Wiki
+              - generic [ref=e163]:
+                - link "Monster egg" [ref=e164] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Monster_egg
+                - generic [ref=e165]:
+                  - img "Monster egg" [ref=e167]
+                  - generic [ref=e168]:
+                    - heading "Monster egg" [level=3] [ref=e170]
+                    - generic [ref=e172]: Gemcraft Wiki
+              - generic [ref=e174]:
+                - link "4-Corner Map Code" [ref=e175] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/4-Corner_Map_Code
+                - generic [ref=e176]:
+                  - img "4-Corner Map Code" [ref=e178]
+                  - generic [ref=e179]:
+                    - heading "4-Corner Map Code" [level=3] [ref=e181]
+                    - generic [ref=e183]: Gemcraft Wiki
+              - generic [ref=e185]:
+                - link "Anemic Agility" [ref=e186] [cursor=pointer]:
+                  - /url: http://warframe.fandom.com/wiki/Anemic_Agility
+                - generic [ref=e187]:
+                  - img "Anemic Agility" [ref=e189]
+                  - generic [ref=e190]:
+                    - heading "Anemic Agility" [level=3] [ref=e192]
+                    - generic [ref=e194]: WARFRAME Wiki
+              - generic [ref=e196]:
+                - link "List of Levels in Gemcraft Chapter 1 (The Forgotten)" [ref=e197] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/List_of_Levels_in_Gemcraft_Chapter_1_(The_Forgotten)
+                - generic [ref=e198]:
+                  - img "List of Levels in Gemcraft Chapter 1 (The Forgotten)" [ref=e200]
+                  - generic [ref=e201]:
+                    - heading "List of Levels in Gemcraft Chapter 1 (The Forgotten)" [level=3] [ref=e203]
+                    - generic [ref=e205]: Gemcraft Wiki
+              - generic [ref=e207]:
+                - link "Hextile N" [ref=e208] [cursor=pointer]:
+                  - /url: http://gemcraft.fandom.com/wiki/Hextile_N
+                - generic [ref=e209]:
+                  - img "Hextile N" [ref=e211]
+                  - generic [ref=e212]:
+                    - heading "Hextile N" [level=3] [ref=e214]
+                    - generic [ref=e216]: Gemcraft Wiki
+              - generic [ref=e218]:
+                - link "Leigh Hunt" [ref=e219] [cursor=pointer]:
+                  - /url: http://pennyspoetry.fandom.com/wiki/Leigh_Hunt
+                - generic [ref=e220]:
+                  - img "Leigh Hunt" [ref=e222]
+                  - generic [ref=e223]:
+                    - heading "Leigh Hunt" [level=3] [ref=e225]
+                    - generic [ref=e227]: Penny's poetry pages Wiki
+              - generic [ref=e229]:
+                - link "The Prototype (Poppy Playtime)" [ref=e230] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/The_Prototype_(Poppy_Playtime)
+                - generic [ref=e231]:
+                  - img "The Prototype (Poppy Playtime)" [ref=e233]
+                  - generic [ref=e234]:
+                    - heading "The Prototype (Poppy Playtime)" [level=3] [ref=e236]
+                    - generic [ref=e238]: VS Battles Wiki
+              - generic [ref=e240]:
+                - link "Attack Potency" [ref=e241] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Attack_Potency
+                - generic [ref=e242]:
+                  - img "Attack Potency" [ref=e244]
+                  - generic [ref=e245]:
+                    - heading "Attack Potency" [level=3] [ref=e247]
+                    - generic [ref=e249]: VS Battles Wiki
+              - generic [ref=e251]:
+                - link "List of Yu-Gi-Oh! Forbidden Memories cards" [ref=e252] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/List_of_Yu-Gi-Oh!_Forbidden_Memories_cards
+                - generic [ref=e253]:
+                  - img "List of Yu-Gi-Oh! Forbidden Memories cards" [ref=e255]
+                  - generic [ref=e256]:
+                    - heading "List of Yu-Gi-Oh! Forbidden Memories cards" [level=3] [ref=e258]
+                    - generic [ref=e260]: Yu-Gi-Oh! Wiki
+              - generic [ref=e262]:
+                - link "Blazing Dominion" [ref=e263] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Blazing_Dominion
+                - generic [ref=e264]:
+                  - img "Blazing Dominion" [ref=e266]
+                  - generic [ref=e267]:
+                    - heading "Blazing Dominion" [level=3] [ref=e269]
+                    - generic [ref=e271]: Yu-Gi-Oh! Wiki
+              - generic [ref=e273]:
+                - link "Satoru Gojo" [ref=e274] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Satoru_Gojo
+                - generic [ref=e275]:
+                  - img "Satoru Gojo" [ref=e277]
+                  - generic [ref=e278]:
+                    - heading "Satoru Gojo" [level=3] [ref=e280]
+                    - generic [ref=e282]: VS Battles Wiki
+              - generic [ref=e284]:
+                - link "Leon S. Kennedy" [ref=e285] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Leon_S._Kennedy
+                - generic [ref=e286]:
+                  - img "Leon S. Kennedy" [ref=e288]
+                  - generic [ref=e289]:
+                    - heading "Leon S. Kennedy" [level=3] [ref=e291]
+                    - generic [ref=e293]: VS Battles Wiki
+              - generic [ref=e295]:
+                - link "Lifting Strength" [ref=e296] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Lifting_Strength
+                - generic [ref=e297]:
+                  - img "Lifting Strength" [ref=e299]
+                  - generic [ref=e300]:
+                    - heading "Lifting Strength" [level=3] [ref=e302]
+                    - generic [ref=e304]: VS Battles Wiki
+              - generic [ref=e306]:
+                - link "Powerscaling" [ref=e307] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Powerscaling
+                - generic [ref=e308]:
+                  - img "Powerscaling" [ref=e310]
+                  - generic [ref=e311]:
+                    - heading "Powerscaling" [level=3] [ref=e313]
+                    - generic [ref=e315]: VS Battles Wiki
+              - generic [ref=e317]:
+                - link "Pharaoh Atem" [ref=e318] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Pharaoh_Atem
+                - generic [ref=e319]:
+                  - img "Pharaoh Atem" [ref=e321]
+                  - generic [ref=e322]:
+                    - heading "Pharaoh Atem" [level=3] [ref=e324]
+                    - generic [ref=e326]: Yu-Gi-Oh! Wiki
+              - generic [ref=e328]:
+                - link "Yami Yugi" [ref=e329] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Yami_Yugi
+                - generic [ref=e330]:
+                  - img "Yami Yugi" [ref=e332]
+                  - generic [ref=e333]:
+                    - heading "Yami Yugi" [level=3] [ref=e335]
+                    - generic [ref=e337]: Yu-Gi-Oh! Wiki
+              - generic [ref=e339]:
+                - link "Seto Kaiba" [ref=e340] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Seto_Kaiba
+                - generic [ref=e341]:
+                  - img "Seto Kaiba" [ref=e343]
+                  - generic [ref=e344]:
+                    - heading "Seto Kaiba" [level=3] [ref=e346]
+                    - generic [ref=e348]: Yu-Gi-Oh! Wiki
+              - generic [ref=e350]:
+                - link "Yugi Muto" [ref=e351] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Yugi_Muto
+                - generic [ref=e352]:
+                  - img "Yugi Muto" [ref=e354]
+                  - generic [ref=e355]:
+                    - heading "Yugi Muto" [level=3] [ref=e357]
+                    - generic [ref=e359]: Yu-Gi-Oh! Wiki
+              - generic [ref=e361]:
+                - link "Exodia" [ref=e362] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Exodia
+                - generic [ref=e363]:
+                  - img "Exodia" [ref=e365]
+                  - generic [ref=e366]:
+                    - heading "Exodia" [level=3] [ref=e368]
+                    - generic [ref=e370]: Yu-Gi-Oh! Wiki
+              - generic [ref=e372]:
+                - link "Tiering System" [ref=e373] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Tiering_System
+                - generic [ref=e374]:
+                  - img "Tiering System" [ref=e376]
+                  - generic [ref=e377]:
+                    - heading "Tiering System" [level=3] [ref=e379]
+                    - generic [ref=e381]: VS Battles Wiki
+              - generic [ref=e383]:
+                - link "Ryomen Sukuna" [ref=e384] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Ryomen_Sukuna
+                - generic [ref=e385]:
+                  - img "Ryomen Sukuna" [ref=e387]
+                  - generic [ref=e388]:
+                    - heading "Ryomen Sukuna" [level=3] [ref=e390]
+                    - generic [ref=e392]: VS Battles Wiki
+              - generic [ref=e394]:
+                - link "Egyptian God" [ref=e395] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Egyptian_God
+                - generic [ref=e396]:
+                  - img "Egyptian God" [ref=e398]
+                  - generic [ref=e399]:
+                    - heading "Egyptian God" [level=3] [ref=e401]
+                    - generic [ref=e403]: Yu-Gi-Oh! Wiki
+              - generic [ref=e405]:
+                - link "Chaos Origins" [ref=e406] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Chaos_Origins
+                - generic [ref=e407]:
+                  - img "Chaos Origins" [ref=e409]
+                  - generic [ref=e410]:
+                    - heading "Chaos Origins" [level=3] [ref=e412]
+                    - generic [ref=e414]: Yu-Gi-Oh! Wiki
+              - generic [ref=e416]:
+                - link "Son Goku (DBS Anime)" [ref=e417] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Son_Goku_(DBS_Anime)
+                - generic [ref=e418]:
+                  - img "Son Goku (DBS Anime)" [ref=e420]
+                  - generic [ref=e421]:
+                    - heading "Son Goku (DBS Anime)" [level=3] [ref=e423]
+                    - generic [ref=e425]: VS Battles Wiki
+              - generic [ref=e427]:
+                - link "Sonic the Hedgehog (Modern)" [ref=e428] [cursor=pointer]:
+                  - /url: https://vsbattles.fandom.com/wiki/Sonic_the_Hedgehog_(Modern)
+                - generic [ref=e429]:
+                  - img "Sonic the Hedgehog (Modern)" [ref=e431]
+                  - generic [ref=e432]:
+                    - heading "Sonic the Hedgehog (Modern)" [level=3] [ref=e434]
+                    - generic [ref=e436]: VS Battles Wiki
+              - generic [ref=e438]:
+                - link "Legendary Modern Decks 2026" [ref=e439] [cursor=pointer]:
+                  - /url: https://yugioh.fandom.com/wiki/Legendary_Modern_Decks_2026
+                - generic [ref=e440]:
+                  - img "Legendary Modern Decks 2026" [ref=e442]
+                  - generic [ref=e443]:
+                    - heading "Legendary Modern Decks 2026" [level=3] [ref=e445]
+                    - generic [ref=e447]: Yu-Gi-Oh! Wiki
+  - generic [ref=e448]:
+    - generic [ref=e453]: Advertisement
+    - generic [ref=e455]:
+      - link "Skip to content" [ref=e456] [cursor=pointer]:
+        - /url: "#page-header"
+      - banner [ref=e458]:
+        - generic [ref=e459]:
+          - link "Gemcraft Wiki" [ref=e461] [cursor=pointer]:
+            - /url: https://gemcraft.fandom.com/wiki/Gemcraft_Wiki
+          - generic [ref=e462]:
+            - generic [ref=e463]: "978"
+            - generic [ref=e464]: pages
+          - generic [ref=e465]:
+            - link "Discuss" [ref=e466] [cursor=pointer]:
+              - /url: /f
+              - img
+            - link "Switch to Dark Theme" [ref=e467] [cursor=pointer]:
+              - /url: "#"
+              - img
+        - navigation [ref=e468]:
+          - list [ref=e469]:
+            - listitem [ref=e470]:
+              - generic [ref=e471]:
+                - generic [ref=e472] [cursor=pointer]:
+                  - img [ref=e473]
+                  - generic [ref=e475]: Explore
+                - img "Expand" [ref=e476]
+            - listitem [ref=e478]:
+              - generic [ref=e479]:
+                - link "Gemcraft" [ref=e480] [cursor=pointer]:
+                  - /url: https://gemcraft.fandom.com/wiki/Gemcraft_Wiki
+                  - generic [ref=e481]: Gemcraft
+                - img "Expand" [ref=e482]
+            - listitem [ref=e484]:
+              - generic [ref=e485]:
+                - generic [ref=e487] [cursor=pointer]: Community
+                - img "Expand" [ref=e488]
+      - generic [ref=e490]:
+        - main [ref=e491]:
+          - generic [ref=e493]:
+            - button "Expand" [ref=e494] [cursor=pointer]:
+              - img [ref=e495]
+            - generic "Contents" [ref=e497]:
+              - button "Contents" [ref=e498] [cursor=pointer]:
+                - img [ref=e499]
+              - text: . . . .
+            - link "Sign in to edit" [ref=e501] [cursor=pointer]:
+              - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit&uselang=en&metadata=article-registration-edit-article
+              - img [ref=e502]
+          - generic [ref=e504]:
+            - generic [ref=e507]:
+              - text: "in:"
+              - link "Gemcraft Chapter 2 (Chasing Shadows)" [ref=e508] [cursor=pointer]:
+                - /url: /wiki/Category:Gemcraft_Chapter_2_(Chasing_Shadows)
+            - generic [ref=e509]:
+              - heading "Talisman (GC2)" [level=1] [ref=e511]
+              - generic [ref=e512]:
+                - link "Comments" [ref=e513] [cursor=pointer]:
+                  - /url: "#articleComments"
+                  - generic [ref=e514]: "14"
+                  - img
+                - link "Sign in to edit" [ref=e515] [cursor=pointer]:
+                  - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit&uselang=en&metadata=article-registration-edit-article
+                  - img
+                  - text: Sign in to edit
+                - button "Page Tools" [ref=e517]:
+                  - img
+          - generic [ref=e520]:
+            - figure "A fully-equipped talisman." [ref=e521]:
+              - link "A fully-equipped talisman. view image" [ref=e522] [cursor=pointer]:
+                - /url: https://static.wikia.nocookie.net/gemcraft/images/9/99/Talisman.png/revision/latest?cb=20140523141229
+                - img "A fully-equipped talisman." [ref=e523]
+                - generic "view image" [ref=e526]:
+                  - img [ref=e527]
+              - paragraph [ref=e530]: A fully-equipped talisman.
+            - paragraph [ref=e531]:
+              - text: A Talisman is an item that appears in
+              - 'link "GemCraft Chapter 2: Chasing Shadows" [ref=e532] [cursor=pointer]':
+                - /url: /wiki/GemCraft_Chapter_2:_Chasing_Shadows
+              - text: . It contains 15 sockets that can filled by fragments, which can be found and equipped by completing the fields, giving the player extra attributes.
+            - paragraph [ref=e533]: "There are three types of fragments, with each of them up to five:"
+            - list [ref=e534]:
+              - listitem [ref=e535]: Corner (upside-down pentagon)
+              - listitem [ref=e536]: Edge (circle)
+              - listitem [ref=e537]: Inner (10-pointed star)
+            - paragraph [ref=e538]:
+              - text: Up to six talisman fragments can be dropped by killed monsters (0-3 during normal play and 0-3 in the first 150 waves of endurance mode). Additional fragments can be found in drop holders or abandoned dwellings. Successful completion of
+              - link "Mysterious Compass" [ref=e539] [cursor=pointer]:
+                - /url: /wiki/Mysterious_Compass_(GC2)
+              - text: levels (7 total) rewards mid-high level talisman fragments.
+            - paragraph [ref=e540]: Fragments have a range of 1-100. Higher rarity fragments have additional and more powerful properties, and upgrade levels, with a higher upgrade cost.
+            - navigation "Contents" [ref=e541]:
+              - button "show" [ref=e542]
+              - generic [ref=e543]:
+                - heading "Contents" [level=2] [ref=e544]:
+                  - img [ref=e545]
+                  - text: Contents
+                - generic [ref=e547]:
+                  - text: "["
+                  - generic "show" [ref=e548] [cursor=pointer]: hide
+                  - text: "]"
+              - list [ref=e549]:
+                - listitem [ref=e550]:
+                  - link "1. Rarity" [ref=e551] [cursor=pointer]:
+                    - /url: "#Rarity"
+                    - generic [ref=e552]: "1."
+                    - generic [ref=e553]: Rarity
+                - listitem [ref=e554]:
+                  - link "2. Properties" [ref=e555] [cursor=pointer]:
+                    - /url: "#Properties"
+                    - generic [ref=e556]: "2."
+                    - generic [ref=e557]: Properties
+                - listitem [ref=e558]:
+                  - link "3. Salvaging" [ref=e559] [cursor=pointer]:
+                    - /url: "#Salvaging"
+                    - generic [ref=e560]: "3."
+                    - generic [ref=e561]: Salvaging
+                - listitem [ref=e562]:
+                  - link "4. Trivia" [ref=e563] [cursor=pointer]:
+                    - /url: "#Trivia"
+                    - generic [ref=e564]: "4."
+                    - generic [ref=e565]: Trivia
+            - generic [ref=e1112]:
+              - generic [ref=e1113]:
+                - application "Connatix video player" [ref=e1115]
+                - generic [ref=e1118]:
+                  - generic [ref=e1123]:
+                    - generic:
+                      - button "More":
+                        - generic:
+                          - generic:
+                            - img
+                    - menu:
+                      - generic: Quality
+                    - generic:
+                      - menu:
+                        - generic: 360p
+                        - generic: 720p
+                        - generic: 1080p
+                        - generic: Auto(360p)
+                  - img "logo" [ref=e1127]
+                  - generic [ref=e1130]:
+                    - generic [ref=e1131]:
+                      - generic:
+                        - button "Previous (Shift + P)":
+                          - generic:
+                            - generic:
+                              - img
+                    - generic [ref=e1133]:
+                      - generic:
+                        - button "Pause (SPACE)":
+                          - generic:
+                            - generic:
+                              - img
+                    - generic [ref=e1134]:
+                      - generic:
+                        - button "Next (Shift + N)":
+                          - generic:
+                            - generic:
+                              - img
+                  - img [ref=e1139]
+                  - generic [ref=e1148]:
+                    - generic [ref=e1150]:
+                      - generic:
+                        - button "Unmute (M)":
+                          - generic:
+                            - generic:
+                              - img
+                    - generic [ref=e1152]: 00:01
+                    - slider "Seek" [ref=e1163] [cursor=pointer]: "0"
+                    - generic [ref=e1165]: 41:20
+                    - generic [ref=e1166]:
+                      - generic [ref=e1167]:
+                        - generic:
+                          - button "Settings":
+                            - generic:
+                              - generic:
+                                - img
+                      - generic:
+                        - menu:
+                          - generic: 360p
+                          - generic: 720p
+                          - generic: 1080p
+                          - generic: Auto(360p)
+                    - generic [ref=e1168]:
+                      - generic:
+                        - button "Full Screen (F)":
+                          - generic:
+                            - generic:
+                              - img
+                  - generic:
+                    - generic:
+                      - menu
+                - text: "Coming up:"
+                - generic:
+                  - iframe [ref=e1169]:
+                    
+                  - iframe [ref=e1170]:
+                    
+                  - iframe [ref=e1171]:
+                    
+                  - iframe [ref=e1172]:
+                    
+              - button "Close Player" [ref=e1174]:
+                - img [ref=e1175]
+            - heading "Rarity Sign in to edit" [level=2] [ref=e566]:
+              - text: Rarity
+              - link "Sign in to edit" [ref=e568] [cursor=pointer]:
+                - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit%26section%3D1&uselang=en&metadata=article-registration-edit-article-section
+                - img [ref=e569]
+            - figure "All the colors of inner fragments." [ref=e571]:
+              - link "All the colors of inner fragments. view image" [ref=e572] [cursor=pointer]:
+                - /url: https://static.wikia.nocookie.net/gemcraft/images/6/69/Fragments.PNG/revision/latest?cb=20140821023642
+                - img "All the colors of inner fragments." [ref=e573]
+                - generic "view image" [ref=e576]:
+                  - img [ref=e577]
+              - paragraph [ref=e580]: All the colors of inner fragments.
+            - paragraph [ref=e581]:
+              - text: The rarity level defines how many properties a fragment can have and how many times it can be upgraded. Generally, fragments with darker colors at higher rarity level (see below) have more properties, and are able to be upgraded more times. Upgrade costs start at 0
+              - link "shadow cores" [ref=e582] [cursor=pointer]:
+                - /url: /wiki/Shadow_Cores
+              - text: ", since rarity level 1 fragments don't need shadow cores to be upgraded, and increase with rarity and upgrade level."
+            - table [ref=e583]:
+              - rowgroup [ref=e584]:
+                - row "Rarity Color Maximum Upgrade Level General Properties Type-Specific Properties Skill Bonus All Skills Chance" [ref=e585]:
+                  - columnheader "Rarity" [ref=e586]
+                  - columnheader "Color" [ref=e587]
+                  - columnheader "Maximum Upgrade Level" [ref=e588]
+                  - columnheader "General Properties" [ref=e589]
+                  - columnheader "Type-Specific Properties" [ref=e590]
+                  - columnheader "Skill Bonus" [ref=e591]
+                  - columnheader "All Skills Chance" [ref=e592]
+                - row "1-9 Grey 2 1 0 No 0%" [ref=e593]:
+                  - cell "1-9" [ref=e594]
+                  - cell "Grey" [ref=e595]
+                  - cell "2" [ref=e596]
+                  - cell "1" [ref=e597]
+                  - cell "0" [ref=e598]
+                  - cell "No" [ref=e599]
+                  - cell "0%" [ref=e600]
+                - row "10-19 Brown 3 1 1 No 0%" [ref=e601]:
+                  - cell "10-19" [ref=e602]
+                  - cell "Brown" [ref=e603]
+                  - cell "3" [ref=e604]
+                  - cell "1" [ref=e605]
+                  - cell "1" [ref=e606]
+                  - cell "No" [ref=e607]
+                  - cell "0%" [ref=e608]
+                - row "20-29 Light Green 4 2 1 No 0%" [ref=e609]:
+                  - cell "20-29" [ref=e610]
+                  - cell "Light Green" [ref=e611]
+                  - cell "4" [ref=e612]
+                  - cell "2" [ref=e613]
+                  - cell "1" [ref=e614]
+                  - cell "No" [ref=e615]
+                  - cell "0%" [ref=e616]
+                - row "30-39 Light Blue 5 3 1 No 0%" [ref=e617]:
+                  - cell "30-39" [ref=e618]
+                  - cell "Light Blue" [ref=e619]
+                  - cell "5" [ref=e620]
+                  - cell "3" [ref=e621]
+                  - cell "1" [ref=e622]
+                  - cell "No" [ref=e623]
+                  - cell "0%" [ref=e624]
+                - row "40-49 Yellow 6 3 2 No 0%" [ref=e625]:
+                  - cell "40-49" [ref=e626]
+                  - cell "Yellow" [ref=e627]
+                  - cell "6" [ref=e628]
+                  - cell "3" [ref=e629]
+                  - cell "2" [ref=e630]
+                  - cell "No" [ref=e631]
+                  - cell "0%" [ref=e632]
+                - row "50-59 Orange 7 4 2 No 0%" [ref=e633]:
+                  - cell "50-59" [ref=e634]
+                  - cell "Orange" [ref=e635]
+                  - cell "7" [ref=e636]
+                  - cell "4" [ref=e637]
+                  - cell "2" [ref=e638]
+                  - cell "No" [ref=e639]
+                  - cell "0%" [ref=e640]
+                - row "60-69 Dark Green 7 4 2 Yes 0%" [ref=e641]:
+                  - cell "60-69" [ref=e642]
+                  - cell "Dark Green" [ref=e643]
+                  - cell "7" [ref=e644]
+                  - cell "4" [ref=e645]
+                  - cell "2" [ref=e646]
+                  - cell "Yes" [ref=e647]
+                  - cell "0%" [ref=e648]
+                - row "70-79 Dark Blue 8 5 2 Yes 10% + 1.5% * (rarity - 70)" [ref=e649]:
+                  - cell "70-79" [ref=e650]
+                  - cell "Dark Blue" [ref=e651]
+                  - cell "8" [ref=e652]
+                  - cell "5" [ref=e653]
+                  - cell "2" [ref=e654]
+                  - cell "Yes" [ref=e655]
+                  - cell "10% + 1.5% * (rarity - 70)" [ref=e656]
+                - row "80-89 Red 8 5 2 Yes 25% + 2.5% * (rarity - 80)" [ref=e657]:
+                  - cell "80-89" [ref=e658]
+                  - cell "Red" [ref=e659]
+                  - cell "8" [ref=e660]
+                  - cell "5" [ref=e661]
+                  - cell "2" [ref=e662]
+                  - cell "Yes" [ref=e663]
+                  - cell "25% + 2.5% * (rarity - 80)" [ref=e664]
+                - row "90-99 Violet 9 6 2 Yes 50% + 5% * (rarity - 90)" [ref=e665]:
+                  - cell "90-99" [ref=e666]
+                  - cell "Violet" [ref=e667]
+                  - cell "9" [ref=e668]
+                  - cell "6" [ref=e669]
+                  - cell "2" [ref=e670]
+                  - cell "Yes" [ref=e671]
+                  - cell "50% + 5% * (rarity - 90)" [ref=e672]
+                - row "100 Magenta 9 6 2 Yes 100%" [ref=e673]:
+                  - cell "100" [ref=e674]
+                  - cell "Magenta" [ref=e675]
+                  - cell "9" [ref=e676]
+                  - cell "6" [ref=e677]
+                  - cell "2" [ref=e678]
+                  - cell "Yes" [ref=e679]
+                  - cell "100%" [ref=e680]
+            - paragraph [ref=e681]: General properties is the number of properties which will be taken from the general property pool and type-specific properties is the number of properties which will be taken from the pool for the fragment's type. Skills bonus is whether one of a talisman fragment's properties will be one of the skill increasing properties and all skills chance is the probability of this skill increasing property increasing all skills (Note that even though the table suggests otherwise, a rarity 70 fragment will never have all skills since only rarity 71+ fragments can have it).
+            - heading "Properties Sign in to edit" [level=2] [ref=e682]:
+              - text: Properties
+              - link "Sign in to edit" [ref=e684] [cursor=pointer]:
+                - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit%26section%3D2&uselang=en&metadata=article-registration-edit-article-section
+                - img [ref=e685]
+            - paragraph [ref=e687]: It has a wide range of properties, which can help the player either directly within a game (e.g., damage increase or more starting mana) or indirectly with higher EXP gains, either directly or indirectly due to factors, such as a longer kill chain cooldown.
+            - paragraph [ref=e688]: At 60+ rarity, all fragments have +1 to either a specific skill set or all skills. All fragments may have +% XP, +initial mana, +wizard level % added to initial mana, and +% damage to reavers, swarmlings, or giants. Level 100 fragments have the aforementioned properties at the highest possible values, as well as +1 to all skills.
+            - paragraph [ref=e689]: Certain properties, anything related to strike spells, enhancements, and the other misc benefits, only appear on specific fragments.
+            - table [ref=e690]:
+              - rowgroup [ref=e691]:
+                - row "ID Property Maximum Value Class Minimum Rarity" [ref=e692]:
+                  - columnheader "ID" [ref=e693]
+                  - columnheader "Property" [ref=e694]
+                  - columnheader "Maximum Value" [ref=e695]
+                  - columnheader "Class" [ref=e696]
+                  - columnheader "Minimum Rarity" [ref=e697]
+                - row "0 +x to crafting skill levels 1 Skill 60" [ref=e698]:
+                  - cell "0" [ref=e699]
+                  - cell "+x to crafting skill levels" [ref=e700]
+                  - cell "1" [ref=e701]
+                  - cell "Skill" [ref=e702]
+                  - cell "60" [ref=e703]
+                - row "1 +x to component skill levels 1 Skill 60" [ref=e704]:
+                  - cell "1" [ref=e705]
+                  - cell "+x to component skill levels" [ref=e706]
+                  - cell "1" [ref=e707]
+                  - cell "Skill" [ref=e708]
+                  - cell "60" [ref=e709]
+                - row "2 +x to bomb skill levels 1 Skill 60" [ref=e710]:
+                  - cell "2" [ref=e711]
+                  - cell "+x to bomb skill levels" [ref=e712]
+                  - cell "1" [ref=e713]
+                  - cell "Skill" [ref=e714]
+                  - cell "60" [ref=e715]
+                - row "3 +x to enhancement spell skill levels 1 Skill 60" [ref=e716]:
+                  - cell "3" [ref=e717]
+                  - cell "+x to enhancement spell skill levels" [ref=e718]
+                  - cell "1" [ref=e719]
+                  - cell "Skill" [ref=e720]
+                  - cell "60" [ref=e721]
+                - row "4 +x to strike spell skill levels 1 Skill 60" [ref=e722]:
+                  - cell "4" [ref=e723]
+                  - cell "+x to strike spell skill levels" [ref=e724]
+                  - cell "1" [ref=e725]
+                  - cell "Skill" [ref=e726]
+                  - cell "60" [ref=e727]
+                - row "5 +x to might skill levels 1 Skill 60" [ref=e728]:
+                  - cell "5" [ref=e729]
+                  - cell "+x to might skill levels" [ref=e730]
+                  - cell "1" [ref=e731]
+                  - cell "Skill" [ref=e732]
+                  - cell "60" [ref=e733]
+                - row "6 +x to all skill levels 1 Skill 71" [ref=e734]:
+                  - cell "6" [ref=e735]
+                  - cell "+x to all skill levels" [ref=e736]
+                  - cell "1" [ref=e737]
+                  - cell "Skill" [ref=e738]
+                  - cell "71" [ref=e739]
+                - row "7 +x% damage to swarmlings 20 General 0" [ref=e740]:
+                  - cell "7" [ref=e741]
+                  - cell "+x% damage to swarmlings" [ref=e742]
+                  - cell "20" [ref=e743]
+                  - cell "General" [ref=e744]
+                  - cell "0" [ref=e745]
+                - row "8 +x% damage to reavers 20 General 0" [ref=e746]:
+                  - cell "8" [ref=e747]
+                  - cell "+x% damage to reavers" [ref=e748]
+                  - cell "20" [ref=e749]
+                  - cell "General" [ref=e750]
+                  - cell "0" [ref=e751]
+                - row "9 +x% damage to giants 20 General 0" [ref=e752]:
+                  - cell "9" [ref=e753]
+                  - cell "+x% damage to giants" [ref=e754]
+                  - cell "20" [ref=e755]
+                  - cell "General" [ref=e756]
+                  - cell "0" [ref=e757]
+                - row "10 +x% xp gained 10 General 0" [ref=e758]:
+                  - cell "10" [ref=e759]
+                  - cell "+x% xp gained" [ref=e760]
+                  - cell "10" [ref=e761]
+                  - cell "General" [ref=e762]
+                  - cell "0" [ref=e763]
+                - row "11 +x% of wizard level goes to initial xp and mana 30 General 0" [ref=e764]:
+                  - cell "11" [ref=e765]
+                  - cell "+x% of wizard level goes to initial xp and mana" [ref=e766]
+                  - cell "30" [ref=e767]
+                  - cell "General" [ref=e768]
+                  - cell "0" [ref=e769]
+                - row "12 +x initial mana 150 General 0" [ref=e770]:
+                  - cell "12" [ref=e771]
+                  - cell "+x initial mana" [ref=e772]
+                  - cell "150" [ref=e773]
+                  - cell "General" [ref=e774]
+                  - cell "0" [ref=e775]
+                - row "13 +x% damage to flying ones 20 Inner 0" [ref=e776]:
+                  - cell "13" [ref=e777]
+                  - cell "+x% damage to flying ones" [ref=e778]
+                  - cell "20" [ref=e779]
+                  - cell "Inner" [ref=e780]
+                  - cell "0" [ref=e781]
+                - row "14 +x% damage to buildings 40 Inner 0" [ref=e782]:
+                  - cell "14" [ref=e783]
+                  - cell "+x% damage to buildings" [ref=e784]
+                  - cell "40" [ref=e785]
+                  - cell "Inner" [ref=e786]
+                  - cell "0" [ref=e787]
+                - row "15 +x% tower beam damage 30 Inner 0" [ref=e788]:
+                  - cell "15" [ref=e789]
+                  - cell "+x% tower beam damage" [ref=e790]
+                  - cell "30" [ref=e791]
+                  - cell "Inner" [ref=e792]
+                  - cell "0" [ref=e793]
+                - row "16 +x% tower bolt damage 30 Inner 0" [ref=e794]:
+                  - cell "16" [ref=e795]
+                  - cell "+x% tower bolt damage" [ref=e796]
+                  - cell "30" [ref=e797]
+                  - cell "Inner" [ref=e798]
+                  - cell "0" [ref=e799]
+                - row "17 +x% tower barrage damage 30 Inner 0" [ref=e800]:
+                  - cell "17" [ref=e801]
+                  - cell "+x% tower barrage damage" [ref=e802]
+                  - cell "30" [ref=e803]
+                  - cell "Inner" [ref=e804]
+                  - cell "0" [ref=e805]
+                - row "18 +x% freeze duration 10 Inner 0" [ref=e806]:
+                  - cell "18" [ref=e807]
+                  - cell "+x% freeze duration" [ref=e808]
+                  - cell "10" [ref=e809]
+                  - cell "Inner" [ref=e810]
+                  - cell "0" [ref=e811]
+                - row "19 +x% curse duration 40 Inner 0" [ref=e812]:
+                  - cell "19" [ref=e813]
+                  - cell "+x% curse duration" [ref=e814]
+                  - cell "40" [ref=e815]
+                  - cell "Inner" [ref=e816]
+                  - cell "0" [ref=e817]
+                - row "20 +x% wake of eternity health loss 10 Inner 40" [ref=e818]:
+                  - cell "20" [ref=e819]
+                  - cell "+x% wake of eternity health loss" [ref=e820]
+                  - cell "10" [ref=e821]
+                  - cell "Inner" [ref=e822]
+                  - cell "40" [ref=e823]
+                - row "21 +x% maximum freeze charge 80 Corner 0" [ref=e824]:
+                  - cell "21" [ref=e825]
+                  - cell "+x% maximum freeze charge" [ref=e826]
+                  - cell "80" [ref=e827]
+                  - cell "Corner" [ref=e828]
+                  - cell "0" [ref=e829]
+                - row "22 +x% maximum curse charge 80 Corner 0" [ref=e830]:
+                  - cell "22" [ref=e831]
+                  - cell "+x% maximum curse charge" [ref=e832]
+                  - cell "80" [ref=e833]
+                  - cell "Corner" [ref=e834]
+                  - cell "0" [ref=e835]
+                - row "23 +x% maximum wake of eternity charge 60 Corner 40" [ref=e836]:
+                  - cell "23" [ref=e837]
+                  - cell "+x% maximum wake of eternity charge" [ref=e838]
+                  - cell "60" [ref=e839]
+                  - cell "Corner" [ref=e840]
+                  - cell "40" [ref=e841]
+                - row "24 +x% maximum bolt charge 80 Corner 0" [ref=e842]:
+                  - cell "24" [ref=e843]
+                  - cell "+x% maximum bolt charge" [ref=e844]
+                  - cell "80" [ref=e845]
+                  - cell "Corner" [ref=e846]
+                  - cell "0" [ref=e847]
+                - row "25 +x% maximum beam charge 80 Corner 0" [ref=e848]:
+                  - cell "25" [ref=e849]
+                  - cell "+x% maximum beam charge" [ref=e850]
+                  - cell "80" [ref=e851]
+                  - cell "Corner" [ref=e852]
+                  - cell "0" [ref=e853]
+                - row "26 +x% maximum barrage charge 80 Corner 0" [ref=e854]:
+                  - cell "26" [ref=e855]
+                  - cell "+x% maximum barrage charge" [ref=e856]
+                  - cell "80" [ref=e857]
+                  - cell "Corner" [ref=e858]
+                  - cell "0" [ref=e859]
+                - row "27 +x% maximum shrine charge 60 Corner 0" [ref=e860]:
+                  - cell "27" [ref=e861]
+                  - cell "+x% maximum shrine charge" [ref=e862]
+                  - cell "60" [ref=e863]
+                  - cell "Corner" [ref=e864]
+                  - cell "0" [ref=e865]
+                - row "28 +x% mana for starting waves early 60 Edge 0" [ref=e866]:
+                  - cell "28" [ref=e867]
+                  - cell "+x% mana for starting waves early" [ref=e868]
+                  - cell "60" [ref=e869]
+                  - cell "Edge" [ref=e870]
+                  - cell "0" [ref=e871]
+                - row "29 +x% chance that gem bomb blasts summon +1 gem wasp 18 Edge 0" [ref=e872]:
+                  - cell "29" [ref=e873]
+                  - cell "+x% chance that gem bomb blasts summon +1 gem wasp" [ref=e874]
+                  - cell "18" [ref=e875]
+                  - cell "Edge" [ref=e876]
+                  - cell "0" [ref=e877]
+                - row "30 +x% slower killchain counter cooldown 40 Edge 0" [ref=e878]:
+                  - cell "30" [ref=e879]
+                  - cell "+x% slower killchain counter cooldown" [ref=e880]
+                  - cell "40" [ref=e881]
+                  - cell "Edge" [ref=e882]
+                  - cell "0" [ref=e883]
+                - row "31 +x% heavier orblets 40 Edge 0" [ref=e884]:
+                  - cell "31" [ref=e885]
+                  - cell "+x% heavier orblets" [ref=e886]:
+                    - text: +x% heavier
+                    - link "orblets" [ref=e887] [cursor=pointer]:
+                      - /url: /wiki/Orblet
+                  - cell "40" [ref=e888]
+                  - cell "Edge" [ref=e889]
+                  - cell "0" [ref=e890]
+                - row "32 +x% faster orblet rollback 40 Edge 0" [ref=e891]:
+                  - cell "32" [ref=e892]
+                  - cell "+x% faster orblet rollback" [ref=e893]
+                  - cell "40" [ref=e894]
+                  - cell "Edge" [ref=e895]
+                  - cell "0" [ref=e896]
+                - row "33 +x% mana shard harvesting speed 60 Edge 0" [ref=e897]:
+                  - cell "33" [ref=e898]
+                  - cell "+x% mana shard harvesting speed" [ref=e899]
+                  - cell "60" [ref=e900]
+                  - cell "Edge" [ref=e901]
+                  - cell "0" [ref=e902]
+                - row "34 gem wasps attack +x% faster 40 Edge 0" [ref=e903]:
+                  - cell "34" [ref=e904]
+                  - cell "gem wasps attack +x% faster" [ref=e905]
+                  - cell "40" [ref=e906]
+                  - cell "Edge" [ref=e907]
+                  - cell "0" [ref=e908]
+            - paragraph [ref=e909]: A talisman fragment will use a number of general properties and a number of properties specific to its type, with the numbers used depending on its rarity. Talisman fragments which are at least rarity 60 will have a skill increasing property and if its rarity is at least 71, there is a chance that its skill increasing property affects all skills. The "+x% wake of eternity health loss" and "+x% maximum wake of eternity charge" properties will be replaced with "+x% freeze duration" and "+x% maximum freeze charge" respectively on talisman fragments below rarity 40.
+            - heading "Salvaging Sign in to edit" [level=2] [ref=e910]:
+              - text: Salvaging
+              - link "Sign in to edit" [ref=e912] [cursor=pointer]:
+                - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit%26section%3D3&uselang=en&metadata=article-registration-edit-article-section
+                - img [ref=e913]
+            - paragraph [ref=e915]: Salvaging a talisman fragment will return 50% of the rarity in cores, and 25% of the cost of upgrades put into the fragment.
+            - paragraph [ref=e916]: For example, a rarity 20 talisman will give the player 10 cores back. If the upgrade cost is 8, and if the players does so, it will now salvage for 12 cores. If the next upgrade cost is 20, the total salvage value will be 17 (10+2+5).
+            - heading "Trivia Sign in to edit" [level=2] [ref=e917]:
+              - text: Trivia
+              - link "Sign in to edit" [ref=e919] [cursor=pointer]:
+                - /url: https://auth.fandom.com/signin?redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fveaction%3Dedit%26section%3D4&uselang=en&metadata=article-registration-edit-article-section
+                - img [ref=e920]
+            - list [ref=e922]:
+              - listitem [ref=e923]: The cost of fully upgrading the rarest fragments is about 4,150 shadow cores.
+          - generic [ref=e924]:
+            - generic "Toggle Categories" [ref=e925]:
+              - generic [ref=e926] [cursor=pointer]:
+                - text: Categories
+                - img [ref=e927]
+            - generic [ref=e929]:
+              - text: Community content is available under
+              - link "CC-BY-SA" [ref=e930] [cursor=pointer]:
+                - /url: https://www.fandom.com/licensing
+              - text: unless otherwise noted.
+            - generic [ref=e933]:
+              - paragraph [ref=e936]: 14 Comments
+              - generic [ref=e937]:
+                - img [ref=e939]
+                - heading "Join the conversation" [level=3] [ref=e941]
+                - heading "Sign in to read what others are saying and share your thoughts." [level=4] [ref=e942]
+                - link "SIGN IN" [ref=e943] [cursor=pointer]:
+                  - /url: /login?metadata=anonymous-article-comments-login-source&redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_(GC2)%3Fanon-comments-auth-source%3Dlogin%23articleComments
+                - paragraph [ref=e944]:
+                  - text: Don't have account?
+                  - link "Register now" [ref=e945] [cursor=pointer]:
+                    - /url: /register?metadata=anonymous-article-comments-register-source&redirect=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_(GC2)%3Fanon-comments-auth-source%3Dregister%23articleComments
+        - complementary [ref=e946]
+    - contentinfo [ref=e955]:
+      - generic [ref=e956]:
+        - generic [ref=e957]:
+          - heading "Fandom homepage" [level=2] [ref=e958]:
+            - link "Fandom homepage" [ref=e959] [cursor=pointer]:
+              - /url: https://www.fandom.com/
+              - img "Fandom logo" [ref=e960]
+          - generic [ref=e961]:
+            - heading "Explore properties" [level=3] [ref=e962]
+            - list [ref=e963]:
+              - listitem [ref=e964]:
+                - link "Fandom" [ref=e965] [cursor=pointer]:
+                  - /url: https://www.fandom.com/
+              - listitem [ref=e966]:
+                - link "Fanatical" [ref=e967] [cursor=pointer]:
+                  - /url: https://www.fanatical.com/
+              - listitem [ref=e968]:
+                - link "GameSpot" [ref=e969] [cursor=pointer]:
+                  - /url: https://www.gamespot.com/
+              - listitem [ref=e970]:
+                - link "Metacritic" [ref=e971] [cursor=pointer]:
+                  - /url: https://www.metacritic.com/
+              - listitem [ref=e972]:
+                - link "TV Guide" [ref=e973] [cursor=pointer]:
+                  - /url: https://www.tvguide.com/
+              - listitem [ref=e974]:
+                - link "Honest Entertainment" [ref=e975] [cursor=pointer]:
+                  - /url: https://www.youtube.com/user/screenjunkies
+          - generic [ref=e976]:
+            - heading "Follow Us" [level=3] [ref=e977]
+            - list [ref=e978]:
+              - listitem [ref=e979]:
+                - link "Follow Fandom on Facebook" [ref=e980] [cursor=pointer]:
+                  - /url: https://www.facebook.com/getfandom
+                  - img [ref=e981]
+              - listitem [ref=e983]:
+                - link "Follow Fandom on Twitter" [ref=e984] [cursor=pointer]:
+                  - /url: https://twitter.com/getfandom
+                  - img [ref=e985]
+              - listitem [ref=e987]:
+                - link "Follow Fandom on Youtube" [ref=e988] [cursor=pointer]:
+                  - /url: https://www.youtube.com/fandomentertainment
+                  - img [ref=e989]
+              - listitem [ref=e991]:
+                - link "Follow Fandom on Instagram" [ref=e992] [cursor=pointer]:
+                  - /url: https://www.instagram.com/getfandom/
+                  - img [ref=e993]
+              - listitem [ref=e995]:
+                - link "Follow Fandom on LinkedIn" [ref=e996] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/company/157252
+                  - img [ref=e997]
+        - generic [ref=e1000]:
+          - heading "Overview" [level=3] [ref=e1001]
+          - list [ref=e1002]:
+            - listitem [ref=e1003]:
+              - link "What is Fandom?" [ref=e1004] [cursor=pointer]:
+                - /url: https://www.fandom.com/what-is-fandom
+            - listitem [ref=e1005]:
+              - link "Essentials" [ref=e1006] [cursor=pointer]:
+                - /url: https://www.fandom.com/essentials
+            - listitem [ref=e1007]:
+              - link "About" [ref=e1008] [cursor=pointer]:
+                - /url: https://www.fandom.com/about
+            - listitem [ref=e1009]:
+              - link "Careers" [ref=e1010] [cursor=pointer]:
+                - /url: https://www.fandom.com/careers
+            - listitem [ref=e1011]:
+              - link "Press" [ref=e1012] [cursor=pointer]:
+                - /url: https://www.fandom.com/press
+            - listitem [ref=e1013]:
+              - link "Contact" [ref=e1014] [cursor=pointer]:
+                - /url: https://www.fandom.com/about#contact
+            - listitem [ref=e1015]:
+              - link "Terms of Use" [ref=e1016] [cursor=pointer]:
+                - /url: https://www.fandom.com/terms-of-use
+            - listitem [ref=e1017]:
+              - link "Privacy Policy" [ref=e1018] [cursor=pointer]:
+                - /url: https://www.fandom.com/privacy-policy
+            - listitem [ref=e1019]:
+              - link "Digital Services Act" [ref=e1020] [cursor=pointer]:
+                - /url: https://www.fandom.com/digital-services-act
+            - listitem [ref=e1021]:
+              - link "Global Sitemap" [ref=e1022] [cursor=pointer]:
+                - /url: //community.fandom.com/Sitemap
+            - listitem [ref=e1023]:
+              - link "Local Sitemap" [ref=e1024] [cursor=pointer]:
+                - /url: /wiki/Local_Sitemap
+            - listitem [ref=e1025]:
+              - button "Do Not Sell My Personal Information" [ref=e1026]
+        - generic [ref=e1027]:
+          - generic [ref=e1028]:
+            - heading "Community" [level=3] [ref=e1029]
+            - list [ref=e1030]:
+              - listitem [ref=e1031]:
+                - link "Community Central" [ref=e1032] [cursor=pointer]:
+                  - /url: //community.fandom.com/wiki/Community_Central
+              - listitem [ref=e1033]:
+                - link "Support" [ref=e1034] [cursor=pointer]:
+                  - /url: https://fandom.zendesk.com/
+              - listitem [ref=e1035]:
+                - link "Help" [ref=e1036] [cursor=pointer]:
+                  - /url: //community.fandom.com/wiki/Help:Contents
+          - generic [ref=e1037]:
+            - heading "Advertise" [level=3] [ref=e1038]
+            - list [ref=e1039]:
+              - listitem [ref=e1040]:
+                - link "Media Kit" [ref=e1041] [cursor=pointer]:
+                  - /url: https://about.fandom.com/mediakit
+              - listitem [ref=e1042]:
+                - link "Contact" [ref=e1043] [cursor=pointer]:
+                  - /url: https://about.fandom.com/mediakit#contact
+        - generic [ref=e1044]:
+          - generic [ref=e1045]:
+            - heading "Fandom Apps" [level=3] [ref=e1046]
+            - text: Take your favorite fandoms with you and never miss a beat.
+          - generic [ref=e1047]:
+            - img "Fandom App logo" [ref=e1048]
+            - list [ref=e1049]:
+              - listitem [ref=e1050]:
+                - link "Fandom's Apple Store" [ref=e1051] [cursor=pointer]:
+                  - /url: https://apps.apple.com/us/app/fandom-videos-news-reviews/id1230063803
+                  - img "Store icon" [ref=e1052]
+              - listitem [ref=e1053]:
+                - link "Fandom's Google Play" [ref=e1054] [cursor=pointer]:
+                  - /url: https://play.google.com/store/apps/details?id=com.fandom.app&referrer=utm_source%3Dwikia%26utm_medium%3Dglobalfooter
+                  - img "Store icon" [ref=e1055]
+      - generic [ref=e1056]:
+        - generic [ref=e1057]: Gemcraft Wiki is a Fandom Games Community.
+        - button "View Mobile Site" [ref=e1059]
+  - generic [ref=e1062]:
+    - link "Search this wiki" [ref=e1064] [cursor=pointer]:
+      - /url: https://gemcraft.fandom.com/wiki/Special:Search?scope=internal&query=&h=1&isFromHighlightActions=on
+      - img [ref=e1065]
+      - generic [ref=e1067]: Search this wiki
+    - link "Search all wikis" [ref=e1069] [cursor=pointer]:
+      - /url: https://gemcraft.fandom.com/wiki/Special:Search?scope=cross-wiki&query=&h=1&isFromHighlightActions=on
+      - generic [ref=e1070]: Search all wikis
+    - generic [ref=e1071]:
+      - link [ref=e1073] [cursor=pointer]:
+        - /url: https://reddit.com/submit?url=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fsh%3DOYreyKhlcD__5639%26m%3D3%26utm_source%3Dreddit%26utm_campaign%3Dh2s&title=
+        - img [ref=e1074]
+      - link [ref=e1077] [cursor=pointer]:
+        - /url: https://www.facebook.com/dialog/share?app_id=112328095453510&href=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fsh%3DOYreyKhlcD__5639%26m%3D2%26utm_source%3Dfacebook%26utm_campaign%3Dh2s&redirect_uri=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29&quote=&display=page
+        - img [ref=e1078]
+      - link [ref=e1081] [cursor=pointer]:
+        - /url: https://twitter.com/intent/tweet?text=&url=https%3A%2F%2Fgemcraft.fandom.com%2Fwiki%2FTalisman_%28GC2%29%3Fsh%3DOYreyKhlcD__5639%26m%3D1%26utm_source%3Dtwitter%26utm_campaign%3Dh2s
+        - img [ref=e1082]
+    - button "More" [ref=e1085] [cursor=pointer]:
+      - img [ref=e1086]
+  - region "Cookie banner" [active] [ref=e1088]:
+    - dialog "Privacy" [ref=e1089]:
+      - generic [ref=e1091]:
+        - generic [ref=e1094]: This website uses cookies to enhance user experience and to analyze performance and traffic on our website. We also share information about your use of our site with our social media, advertising and analytics partners.
+        - generic [ref=e1096]:
+          - button "Do Not Sell My Personal Information, Opens the preference center dialog" [ref=e1097] [cursor=pointer]: Do Not Sell My Personal Information
+          - button "Accept Cookies" [ref=e1098] [cursor=pointer]
+      - button "Close" [ref=e1100] [cursor=pointer]
+  - iframe

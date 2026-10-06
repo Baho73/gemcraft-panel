@@ -1,0 +1,5 @@
+<GraceDeployment graceVersion="4.0">
+  <Applicability>applicable</Applicability>
+  <Target>Локально на машине Ивана (Windows 11). Запуск: ярлык D:/Desktop/GemCraft-pause.lnk (pythonw digit_grab.py) или python digit_grab.py в D:/Python/gems.</Target>
+  <Notes>Перезапуск окна — только когда цепочка не идёт (иначе игра остаётся на паузе цепочки). Настройки и точки — в digit_grab.json, переживают перезапуск.</Notes>
+</GraceDeployment>

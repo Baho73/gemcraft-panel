@@ -1,0 +1,26 @@
+# данные и журналы опроса — не код
+digit_library/
+digit_frames/
+digit_unknown/
+digit_events.tsv
+digit_errors.log
+icons/
+waves/
+freeze/
+flyers/
+review/
+backup-old/
+1/
+2/
+*.png
+!assets/*.png
+!digit_templates/*.png
+!digit_templates_outline/*.png
+!digit_templates_grad/*.png
+# копии и служебное
+*.bak*
+__pycache__/
+.playwright-mcp/
+.claude/
+-=todo=-.md
+-=letter=-.txt

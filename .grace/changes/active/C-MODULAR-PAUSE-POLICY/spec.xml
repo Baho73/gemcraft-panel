@@ -1,0 +1,51 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-MODULAR-PAUSE-POLICY>
+    <Summary>Разбить digit_grab.py (~1100 строк, вся логика в одной функции loop) на модули с контрактами и собрать решение «слать пробел или нет» в одном модуле политики паузы, сохранив текущее поведение пауз, а события, которые сейчас теряются, — откладывать.</Summary>
+    <Problem>Логика размазана: решение о пробеле принимается в пяти местах (event, цепочка, проверка плюса, порог маны, старт). Каждая правка ломала соседнюю ветку: опрос стоял полчаса из-за ошибки в новом детекторе, цепочка спорила с паузой игрока. Найдены дыры: (1) события во время цепочки теряются молча; (2) события сразу после пробела цепочки теряются как «игра уже на паузе»; (3) пробелы цепочки не учитываются защитой «не чаще раза в 20 с»; (4) нет единого места решения о пробеле.</Problem>
+    <Goals>
+      <Goal>Модули с контрактами в отдельных файлах: M-CAPTURE (capture.py), M-MANA-OCR (mana_ocr.py), M-DETECTORS (detectors.py), M-PAUSE-POLICY (pause_policy.py), M-CHAIN (chain.py), M-PANEL (panel.py); M-CLI — digit_grab.py как точка запуска.</Goal>
+      <Goal>M-PAUSE-POLICY — единственное место, где решается: слать пробел сейчас, отложить или не слать; оно знает о своих пробелах (включая пробелы цепочки), об ожидании отклика игры и о паузе игрока.</Goal>
+      <Goal>Событие, пришедшее во время цепочки или пока игра откликается на пробел, откладывается и даёт паузу, как только игра снова идёт.</Goal>
+      <Goal>Пробелы цепочки проходят через M-PAUSE-POLICY и учитываются защитой от повторного пробела.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Поведение, видимое Ивану, не меняется, кроме перечисленного в Goals: те же галочки, поля, пороги, частота 10 кадров в секунду, журналы и их форматы, файл настроек digit_grab.json.</Constraint>
+      <Constraint>Запуск не меняется: python digit_grab.py, ярлык D:/Desktop/GemCraft-pause.lnk, команды test, check, select, space.</Constraint>
+      <Constraint>Пробел никогда не шлётся, если игра на паузе, и не шлётся повторно до отклика игры (до 20 с); паузу игрока не снимать.</Constraint>
+      <Constraint>Прерванная цепочка ничего не жмёт и не щёлкает — только сообщает в окне, что прервана (решение Ивана).</Constraint>
+      <Constraint>Ошибка в одном кадре не останавливает опрос.</Constraint>
+      <Constraint>Перезапуск окна во время работы — только когда цепочка не идёт.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Новые детекторы (летуны, заморозка как пауза) и щелчки по блокам волн.</NonGoal>
+      <NonGoal>Улучшение распознавания маны и подбор порогов.</NonGoal>
+      <NonGoal>Отмена выбора в игре после прерванной цепочки (Esc, правый щелчок).</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>python digit_grab.py test проходит; python digit_grab.py check даёт не хуже 42 из 48.</Criterion>
+      <Criterion>Ни один файл модуля не длиннее ~400 строк; у каждого модуля START_MODULE_CONTRACT и START_MODULE_MAP.</Criterion>
+      <Criterion>Пробел шлётся только из M-PAUSE-POLICY (grep press_space вне capture.py и pause_policy.py — пусто).</Criterion>
+      <Criterion>Тесты политики паузы: событие во время цепочки — пробел после её окончания, когда игра идёт; событие в окне отклика на пробел — пробел после отклика; два события подряд — один пробел; игра на паузе игрока — пробела нет, событие откладывается до хода игры.</Criterion>
+      <Criterion>Живая проверка: окно запускается с ярлыка, паузы по галочкам срабатывают, цепочка проходит до конца, повторных пробелов нет (digit_events.tsv).</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CAPTURE />
+      <M-MANA-OCR />
+      <M-DETECTORS />
+      <M-PAUSE-POLICY />
+      <M-CHAIN />
+      <M-PANEL />
+      <M-CLI />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>python digit_grab.py test</ExpectedCommand>
+      <ExpectedCommand>python digit_grab.py check</ExpectedCommand>
+      <ExpectedCommand>grace lint --path .</ExpectedCommand>
+      <ExpectedEvidence>test: ok; check: не хуже 42 из 48; тесты политики паузы в test проходят; живой прогон в игре без двойных пробелов по digit_events.tsv.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>Делается git init с .gitignore (кадры, журналы, .bak, __pycache__ не попадают), чтобы можно было откатиться к любому рабочему состоянию.</Assumption>
+      <Assumption>«Игра снова идёт» определяется по жёлтой стрелке у кнопок скорости; при невидимых кнопках — по движению карты, как сейчас.</Assumption>
+    </Assumptions>
+  </C-MODULAR-PAUSE-POLICY>
+</GraceChangeSpec>

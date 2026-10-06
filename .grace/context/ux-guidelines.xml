@@ -1,0 +1,7 @@
+<GraceUXGuidelines graceVersion="4.0">
+  <Applicability>applicable</Applicability>
+  <Audience>Иван — единственный пользователь, играет и одновременно следит за окном-пультом.</Audience>
+  <Guideline>Окно поверх всех, компактное; каждое условие паузы — отдельная галочка, настройки сохраняются сразу.</Guideline>
+  <Guideline>Окно при запуске возвращает фокус игре: игра без фокуса сама встаёт на паузу.</Guideline>
+  <Guideline>Подписи и сообщения — по-русски, коротко; число маны и положение волны — крупно.</Guideline>
+</GraceUXGuidelines>
