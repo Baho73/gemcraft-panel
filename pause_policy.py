@@ -11,7 +11,7 @@
 #   PausePolicy.for_window - политика с пробелом в окно игры (M-CAPTURE)
 #   PausePolicy.request -событие паузы (рост маны, волна, индикатор…) -> 'sent' | 'joined' | 'deferred'
 #   PausePolicy.observe - каждый кадр: состояние игры; снимает ожидание отклика, выпускает отложенные события
-#   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся; её пробелы учитываются
+#   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся (выполнена — сбрасываются); её пробелы учитываются
 #   SPACE_WAIT - сколько ждать отклика игры на пробел
 #   self_check - сценарии политики на поддельных часах (вызывается из test)
 # END_MODULE_MAP
@@ -78,8 +78,14 @@ class PausePolicy:
     def chain_begin(self):
         self.chain = True
 
-    def chain_end(self):
+    def chain_end(self, drop=False):
+        """drop=True — цепочка выполнена: события за её время сбросить, игра идёт дальше (Иван, 6.10).
+        Возвращает сброшенные события."""
         self.chain = False
+        if not drop:
+            return []
+        out, self.pending = self.pending, []
+        return out
 
     def chain_space(self, want):
         """Пробел цепочки (want: 'pause' или 'run') — учитывается как свой: дальше ждём отклика."""
@@ -146,4 +152,15 @@ def self_check():
     # 6. кнопок не видно (меню) — вслепую не жмём, откладываем
     n = len(spaces)
     assert p.request("h", (), None) == "deferred" and len(spaces) == n
+    # 7. цепочка выполнена — события за время цепочки сбрасываются, игра идёт без паузы (Иван, 6.10)
+    p.pending.clear()
+    tick("run")
+    p.chain_begin()
+    p.chain_space("pause")
+    tick("pause")
+    assert p.request("i", (), "pause") == "deferred"
+    p.chain_space("run")
+    assert [e[0] for e in p.chain_end(drop=True)] == ["i"] and not p.pending
+    n = len(spaces)
+    assert tick("run") == [] and len(spaces) == n
 # END_BLOCK_SELF_CHECK

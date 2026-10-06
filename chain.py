@@ -65,10 +65,11 @@ class Chain:
             return
         mid = 0 < self.i < len(self.steps()) - 1  # прервали внутри — игра стоит на паузе цепочки
         self.on = False
-        self.policy.chain_end()
+        done = self.i == len(self.steps()) - 1
+        dropped = self.policy.chain_end(drop=done)  # Иван: после выполненной цепочки игра идёт, без паузы
         self.on_change(False)
         self.status(f"цепочка остановлена: {why}" + (" (игра на паузе)" if mid else ""))
-        self.log(f"стоп: {why}")
+        self.log(f"стоп: {why}" + (f"; без паузы после цепочки: {', '.join(t for t, _ in dropped)}" if dropped else ""))
 
     # START_CONTRACT: tick
     #   PURPOSE: Один шаг. pause/resume — один пробел через политику и ожидание отклика (до policy.wait);
@@ -153,8 +154,9 @@ def self_check():
         def chain_begin(self):
             self.chain = True
 
-        def chain_end(self):
+        def chain_end(self, drop=False):
             self.chain = False
+            return []
 
         def chain_space(self, want):
             self.spaces.append(want)
