@@ -12,6 +12,8 @@ from pathlib import Path
 import cv2, numpy as np, win32gui, win32ui
 
 from capture import find_window, grab, press_space, press_key, hover, real_hover, real_click, click
+from chain import Chain, MACRO, VK  # noqa: F401
+from pause_policy import PausePolicy
 
 ctypes.windll.user32.SetProcessDPIAware()
 HERE = Path(__file__).parent
@@ -30,15 +32,6 @@ FROZEN = 3          # столько кадров подряд карта не �
 
 
 from detectors import game_state, light_top, FIELD, ymask, FRAME_TPL, framed_icons, SWIRL_TPL, FREEZE_SAT, freeze_level, swirls, STRIP, wave_blocks, icon_full, _cross, PLUS, PLUS_RING, pluses, filled  # noqa: F401
-
-
-VK = {".": 0xBE}  # у точки свой код клавиши (VK_OEM_PERIOD); ord(".") = 0x2E — это Delete
-MACRO = []  # цепочка Ивана: клавиша, 1 с, навести мышь на точку, 5 с, щелчок в ней, 1 с — для 1-A, 2-B, 2-C, 3-D
-for _k, _p in (("1", "A"), ("2", "B"), ("2", "C"), ("3", "D")):
-    MACRO += [("key", _k), ("hover", _p), ("click", _p)]
-MACRO.append(("click", "D"))  # Иван: последний щелчок (D) — дважды
-MACRO.append(("away", "E"))  # увести курсор на пустое место E: подсказка камушка закрывала заморозку
-MACRO.append(("key", "."))  # и точка — прячет информацию о камушке
 
 
 def select(part):
@@ -223,110 +216,30 @@ def loop(interval):
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
     for v in (real_var, gap_var, wait_var, fdelay_var):
         v.trace_add("write", save_macro)
-    macro = dict(on=False, i=0)
-
-    def macro_steps():
-        return [("pause", None)] + MACRO + [("resume", None), ("done", None)]
+    # START_BLOCK_CHAIN_WIRING
+    # политика паузы — единственная, кто жмёт пробел; цепочка — свои шаги, пробелы через политику
+    policy = PausePolicy(press=lambda: press_space(hwnd),
+                         log=lambda m: print(time.strftime("%H%M%S"), "ПАУЗА", m, flush=True))
 
     def mlog(text):
         print(time.strftime("%H%M%S"), "ЦЕПОЧКА", text, f"[игра: {st.get('state')}]", flush=True)
 
-    def macro_tick():
-        """Один шаг цепочки раз в STEP_GAP. Состояние игры — по жёлтой кнопке «II»/стрелки (st['state']).
-        pause/resume — пробел и проверка через секунду (до 3 попыток). Перед каждым действием проверка,
-        что игра на паузе: если прошлый шаг паузу снял, ставим обратно и пишем, какой шаг виноват."""
-        if not macro["on"]:
-            return
-        steps = macro_steps()
-        kind, arg = steps[macro["i"]]
-        state = st.get("state")
-        nxt = secs(gap_var, STEP_GAP)
-        if kind in ("pause", "resume"):
-            want = "pause" if kind == "pause" else "run"
-            if state == want:
-                mlog(f"{'пауза' if want == 'pause' else 'игра идёт'} — проверено")
-                macro.update(i=macro["i"] + 1, tries=0, sent_at=0)
-            elif state is None:  # кнопок скорости не видно (меню и т.п.) — вслепую не жмём, пробел переключает паузу
-                macro_stop("не вижу кнопок скорости в углу игры")
-                return
-            elif time.time() - macro.get("sent_at", 0) < SPACE_WAIT:  # игра в фоне откликается ~2.5 с — ждём
-                nxt = 0.2
-            elif macro.get("tries", 0) >= 1:  # один пробел и ждём; повтор мог бы снять только что поставленную паузу
-                macro_stop(f"игра не {'встала на паузу' if want == 'pause' else 'пошла'} за {SPACE_WAIT:.0f} с после пробела")
-                return
-            else:
-                press_space(hwnd)
-                macro["sent_at"] = time.time()
-                macro["tries"] = macro.get("tries", 0) + 1
-                mlog(f"пробел ({'пауза' if want == 'pause' else 'снять паузу'}), попытка {macro['tries']}")
-        elif kind == "done":  # цепочка выполняется один раз: пауза, шаги, снять паузу — и всё
-            macro_stop("выполнена")
-            return
-        else:
-            if state == "run":
-                # игру сняли с паузы посреди цепочки (Иван или прошлый шаг) — прерываем и ничего не жмём:
-                # раньше тут ставили паузу обратно пробелом каждую секунду, а игра откликается за 2-7 с —
-                # пробелы копились и переключали паузу туда-обратно, споря с Иваном
-                prev = steps[macro["i"] - 1]
-                macro_stop(f"игру сняли с паузы (после шага {prev[0]} {prev[1]}) — цепочка прервана")
-                return
-            elif kind == "key":
-                press_key(hwnd, VK.get(arg, ord(arg)))
-                mlog(f"клавиша {arg}")
-                macro["i"] += 1
-            elif kind == "away":  # увести курсор с камушка, иначе подсказка с характеристиками закрывает заморозку
-                p = mc["points"].get(arg)
-                if p:
-                    (real_hover if real_var.get() else hover)(hwnd, *p)
-                    mlog(f"курсор в сторону, на {arg} {p}")
-                else:
-                    mlog(f"точка {arg} не задана — курсор не увожу")
-                macro["i"] += 1
-            else:
-                p = mc["points"].get(arg)
-                if not p:
-                    macro_stop(f"не задана точка {arg}")
-                    return
-                real = real_var.get()
-                if kind == "hover":
-                    (real_hover if real else hover)(hwnd, *p)
-                    mlog(f"навёл {'курсор' if real else 'мышь (сообщением)'} на {arg} {p}")
-                    nxt = secs(wait_var, HOVER_WAIT)
-                else:
-                    (real_click if real else click)(hwnd, *p)
-                    mlog(f"щелчок {arg} {p}")
-                    if arg == "A":  # после первого щелчка появляется заморозка — собираем образцы
-                        freeze_sample("до", st["frames"][-1][1] if st["frames"] else None)
-                        for delay in (1000, 3000):
-                            root.after(delay, lambda d=delay: freeze_sample(f"через {d // 1000} с",
-                                                                            st["frames"][-1][1] if st["frames"] else None))
-                macro["i"] += 1
-        root.after(int(nxt * 1000), macro_tick)
+    def after_click(point):
+        if point == "A":  # после первого щелчка появляется заморозка — собираем образцы
+            freeze_sample("до", st["frames"][-1][1] if st["frames"] else None)
+            for delay in (1000, 3000):
+                root.after(delay, lambda d=delay: freeze_sample(f"через {d // 1000} с",
+                                                                st["frames"][-1][1] if st["frames"] else None))
 
-    def macro_start(why):
-        if macro["on"]:
-            return
-        if not all(n in mc["points"] for n in "ABCD"):
-            status.set("цепочка: задайте точки A, B, C, D")
-            return
-        macro.update(on=True, i=0, tries=0, sent_at=0)
-        mbtn.config(text="Стоп цепочки")
-        status.set(f"цепочка идёт ({why})")
-        print(time.strftime("%H%M%S"), f"ЦЕПОЧКА пуск: {why}", flush=True)
-        macro_tick()
-
-    def macro_stop(why):
-        if not macro["on"]:
-            return
-        mid = 0 < macro["i"] < len(macro_steps()) - 1  # прервали внутри круга — игра стоит на паузе цепочки
-        macro.update(on=False)
-        mbtn.config(text="Пуск цепочки")
-        status.set(f"цепочка остановлена: {why}" + (" (игра на паузе)" if mid else ""))
-        print(time.strftime("%H%M%S"), f"ЦЕПОЧКА стоп: {why}", flush=True)
-
+    chain = Chain(hwnd, policy, mc["points"],
+                  lambda: {"real": real_var.get(), "gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
+                  lambda: st.get("state"), root.after, mlog, lambda text: status.set(text),
+                  on_change=lambda on: mbtn.config(text="Стоп цепочки" if on else "Пуск цепочки"),
+                  after_click=after_click)
     mbtn = tk.Button(prow, text="Пуск цепочки",
-                     command=lambda: macro_stop("вручную") if macro["on"] else macro_start("вручную"))
+                     command=lambda: chain.stop("вручную") if chain.on else chain.start("вручную"))
     mbtn.pack(side="right")
+    # END_BLOCK_CHAIN_WIRING
 
     row = tk.Frame(root)
     row.pack(fill="x", padx=8, pady=6)
@@ -382,26 +295,36 @@ def loop(interval):
     status = tk.StringVar(value="захват идёт")
     tk.Label(root, textvariable=status, anchor="w", fg="gray30").pack(fill="x", padx=8, pady=(0, 6))
 
-    def event(stamp, t, text, *cols):
-        # пробел переключает паузу: в уже стоящую игру (её поставили вы) или второй подряд — снимет паузу
-        if t - st["start"] < 1.0:
-            why = "старт: это уже было на экране"  # плюс/рамка, которые были до запуска, — не событие
-        elif macro["on"]:
-            why = "идёт цепочка"  # свой пробел сбил бы её чередование «пауза — снять паузу»
-        elif paused():
-            why = "игра уже на паузе"
-        elif t - st["space_at"] < SPACE_GAP:
-            why = f"пробел был {t - st['space_at']:.1f} с назад"
-        else:
-            why = None
-            press_space(hwnd)  # первым делом — пробел в игру
-            st["space_at"] = t
-            winsound.MessageBeep()  # асинхронно, не тормозит
+    # START_BLOCK_EVENTS
+    def game_now():
+        """Состояние игры для политики: по кнопкам; кнопок нет — по неподвижной карте, иначе None (вслепую не жмём)."""
+        if st.get("state"):
+            return st["state"]
+        return "pause" if paused() else None
+
+    def log_event(stamp, t, text, cols, why):
         with open(HERE / "digit_events.tsv", "a", encoding="utf-8") as f:
             f.write("\t".join([stamp, *map(str, cols), f"{time.time() - t:.3f}", why or "space"]) + "\n")
         hm = f"{stamp[:2]}:{stamp[2:4]}:{stamp[4:6]}"
         print(stamp, text, f"— пробел НЕ отправлен: {why}" if why else "— пробел отправлен", flush=True)
         status.set(f"{hm} {text} — " + (f"без пробела ({why})" if why else "пауза"))
+
+    def event(stamp, t, text, *cols):
+        """Событие паузы -> решение принимает M-PAUSE-POLICY (сейчас / присоединить к паузе в пути / отложить)."""
+        if t - st["start"] < 1.0:
+            return log_event(stamp, t, text, cols, "старт: это уже было на экране")  # было до запуска — не событие
+        r = policy.request(text, cols, game_now())
+        if r == "sent":
+            winsound.MessageBeep()  # асинхронно, не тормозит
+        log_event(stamp, t, text, cols, {"sent": None, "joined": "пауза уже в пути",
+                                         "deferred": "отложено до хода игры"}[r])
+
+    def released(stamp, t, evs):
+        """Отложенные события дали один пробел, когда игра снова пошла."""
+        winsound.MessageBeep()
+        for text, cols in evs:
+            log_event(stamp, t, f"{text} (отложенное)", cols, None)
+    # END_BLOCK_EVENTS
 
     def paused():
         """Пауза — по жёлтой кнопке «II» в углу игры (подсказал Иван); кнопки не видно — по неподвижной карте
@@ -439,6 +362,9 @@ def loop(interval):
             st["diffs"] = (st["diffs"] + [float(np.abs(mp - st["map"]).mean())])[-10:]
         st["map"] = mp
         st["state"] = game_state(full)
+        evs = policy.observe(game_now())  # снять ожидание отклика, выпустить отложенные события
+        if evs:
+            released(stamp, t, evs)
         st["frames"] = (st["frames"] + [(stamp, full)])[-20:]  # последние 2 с — для кнопок «Вижу летуна», «Есть заморозка»
         if t - st.get("freeze_at", 0) >= 1:  # раз в секунду: средние яркость и насыщенность поля — учимся видеть заморозку
             st["freeze_at"] = t
@@ -474,11 +400,11 @@ def loop(interval):
             elif st.get("nofreeze_since") is None:
                 st["nofreeze_since"] = t
             lp = st.get("plus_left", 0)
-            ready = (checks["macro"].get() and not macro["on"] and st.get("nofreeze_since") is not None
+            ready = (checks["macro"].get() and not chain.on and st.get("nofreeze_since") is not None
                      and t - st["nofreeze_since"] >= secs(fdelay_var, 3.0) and t - st.get("chain_done", 0) > 15)
             if ready and lp:
                 st["chain_done"] = t  # не чаще раза в 15 с: заморозка ложится не сразу
-                macro_start(f"заморозки нет {t - st['nofreeze_since']:.0f} с, плюсов у левого: {lp}")
+                chain.start(f"заморозки нет {t - st['nofreeze_since']:.0f} с, плюсов у левого: {lp}")
             elif ready and not st.get("noplus_said"):
                 st["noplus_said"] = True
                 mlog("заморозки нет, но у левого индикатора нет плюсов — жду плюс")
@@ -566,6 +492,8 @@ def loop(interval):
 def test():
     import pause_policy
     pause_policy.self_check()  # сценарии политики паузы (M-PAUSE-POLICY)
+    import chain
+    chain.self_check()  # прерванная цепочка ничего не жмёт (M-CHAIN)
     def render(s):
         img = np.zeros((40, 300), np.uint8)
         cv2.putText(img, s, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
