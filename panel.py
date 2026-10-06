@@ -164,6 +164,9 @@ def loop(interval):
     tk.Label(crow, text="с").pack(side="left")
     freeze_now = tk.StringVar(value="")
     tk.Label(crow, textvariable=freeze_now, fg="gray30").pack(side="left", padx=6)
+    tk.Label(crow, text="порог (ниже — есть)").pack(side="left")
+    sat_var = tk.StringVar(value=str(mc.get("freeze_sat", FREEZE_SAT)))  # Иван: порог заморозки настраивается
+    tk.Entry(crow, textvariable=sat_var, width=4).pack(side="left")
     prow = tk.Frame(root)
     prow.pack(fill="x", padx=8)
     pbtn = {}
@@ -201,9 +204,9 @@ def loop(interval):
 
     def save_macro(*_):
         mc.update(real_mouse=real_var.get(), step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
-                  freeze_delay=secs(fdelay_var, 3.0))
+                  freeze_delay=secs(fdelay_var, 3.0), freeze_sat=secs(sat_var, FREEZE_SAT))
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
-    for v in (real_var, gap_var, wait_var, fdelay_var):
+    for v in (real_var, gap_var, wait_var, fdelay_var, sat_var):
         v.trace_add("write", save_macro)
     # START_BLOCK_CHAIN_WIRING
     # политика паузы — единственная, кто жмёт пробел; цепочка — свои шаги, пробелы через политику
@@ -373,14 +376,14 @@ def loop(interval):
             plus_new = plus_ev[k](np_ >= 1)
             if plus_new and checks[f"{k}_plus"].get():
                 fl = freeze_level(full, mc["points"].get("A")) if k == "left" else None
-                if fl is not None and fl < FREEZE_SAT:  # Иван: заморозка лежит — плюс левого не повод для паузы
+                if fl is not None and fl < secs(sat_var, FREEZE_SAT):  # Иван: заморозка лежит — плюс левого не повод для паузы
                     mlog(f"левый: первый плюс, но заморозка есть ({fl:.0f}) — без паузы")
                 else:
                     event(stamp, t, f"{names.get(k, k)} индикатор: первый плюс", "indicator", k, "plus")
         frz = freeze_level(full, mc["points"].get("A"))  # насыщенность в круге вокруг A: ~94 заморозка, ~155 нет
         if frz is not None:
-            frozen = frz < FREEZE_SAT
-            freeze_now.set(f"заморозка: {'есть' if frozen else 'нет'} ({frz:.0f})")
+            frozen = frz < secs(sat_var, FREEZE_SAT)
+            freeze_now.set(f"заморозка: {'есть' if frozen else 'нет'}, тон {frz:.0f}")
             # не по моменту «кончилась», а по состоянию «нет уже N с»: иначе после запуска окна без заморозки
             # цепочка ждала бы конца заморозки, которой без цепочки не будет
             if frozen or st.get("state") != "run":
