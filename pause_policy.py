@@ -11,7 +11,8 @@
 #   PausePolicy.for_window - политика с пробелом в окно игры (M-CAPTURE)
 #   PausePolicy.request -событие паузы (рост маны, волна, индикатор…) -> 'sent' | 'joined' | 'deferred'
 #   PausePolicy.observe - каждый кадр: состояние игры; снимает ожидание отклика, выпускает отложенные события
-#   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся (выполнена — сбрасываются); её пробелы учитываются
+#   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся (выполнена — сбрасывается только её повод); её пробелы учитываются
+#   CHAIN_TRIGGER - событие-повод цепочки: после выполненной цепочки сбрасывается только оно
 #   SPACE_WAIT - сколько ждать отклика игры на пробел
 #   self_check - сценарии политики на поддельных часах (вызывается из test)
 # END_MODULE_MAP
@@ -23,6 +24,7 @@
 # END_CHANGE_SUMMARY
 import time
 
+CHAIN_TRIGGER = ("indicator", "left", "plus")  # событие, которое и запускает цепочку: после неё оно не повод для паузы
 SPACE_WAIT = 20.0  # столько ждём, пока кнопка «II» переключится после пробела (в фоне — секунды); дольше — отклика нет
 
 
@@ -79,12 +81,14 @@ class PausePolicy:
         self.chain = True
 
     def chain_end(self, drop=False):
-        """drop=True — цепочка выполнена: события за её время сбросить, игра идёт дальше (Иван, 6.10).
+        """drop=True — цепочка выполнена: сбросить её собственный повод (первый плюс левого), игра идёт дальше
+        (Иван, 6.10). Остальное (светлая волна, мана, водоворот) остаётся и даст паузу, когда игра пойдёт.
         Возвращает сброшенные события."""
         self.chain = False
         if not drop:
             return []
-        out, self.pending = self.pending, []
+        out = [e for e in self.pending if tuple(e[1]) == CHAIN_TRIGGER]
+        self.pending = [e for e in self.pending if tuple(e[1]) != CHAIN_TRIGGER]
         return out
 
     def chain_space(self, want):
@@ -152,15 +156,24 @@ def self_check():
     # 6. кнопок не видно (меню) — вслепую не жмём, откладываем
     n = len(spaces)
     assert p.request("h", (), None) == "deferred" and len(spaces) == n
-    # 7. цепочка выполнена — события за время цепочки сбрасываются, игра идёт без паузы (Иван, 6.10)
+    # 7. цепочка выполнена — её повод (плюс левого) сбрасывается, игра идёт без паузы (Иван, 6.10)
     p.pending.clear()
     tick("run")
     p.chain_begin()
     p.chain_space("pause")
     tick("pause")
-    assert p.request("i", (), "pause") == "deferred"
+    assert p.request("i", CHAIN_TRIGGER, "pause") == "deferred"
     p.chain_space("run")
     assert [e[0] for e in p.chain_end(drop=True)] == ["i"] and not p.pending
     n = len(spaces)
     assert tick("run") == [] and len(spaces) == n
+    # 8. светлая волна во время выполненной цепочки не сбрасывается: пауза, когда игра пошла (Иван, 6.10, волна дошла до 52)
+    p.chain_begin()
+    p.chain_space("pause")
+    tick("pause")
+    assert p.request("i2", list(CHAIN_TRIGGER), "pause") == "deferred"
+    assert p.request("w", ("wave", 58), "pause") == "deferred"
+    p.chain_space("run")
+    assert [e[0] for e in p.chain_end(drop=True)] == ["i2"]
+    assert [e[0] for e in tick("run")] == ["w"] and len(spaces) == n + 3
 # END_BLOCK_SELF_CHECK
