@@ -1,0 +1,191 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-MODULAR-PAUSE-POLICY>
+    <IntentSummary>Вынести код из digit_grab.py по модулям без изменения поведения (T-001..T-003), затем создать единый модуль политики паузы с тестами (T-004), перевести на него цепочку и окно (T-005, T-006) — так решение о пробеле принимается в одном месте и откладывает, а не теряет события. В конце — разметка GRACE в файлах, граф и верификация (T-007) и живая проверка в игре (T-008). Каждый шаг заканчивается test/check и отдельным коммитом; окно перезапускается только когда цепочка не идёт.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>digit_grab.py</Value>
+      </MustExist>
+      <MustNotExist>
+        <Value>pause_policy.py</Value>
+      </MustNotExist>
+      <MustNotExist>
+        <Value>M-PAUSE-POLICY</Value>
+      </MustNotExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>capture.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>mana_ocr.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>detectors.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>pause_policy.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>chain.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>panel.py</Value>
+      </MustExist>
+      <MustContain>
+        <File>pause_policy.py</File>
+        <Text>START_MODULE_CONTRACT</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>panel.py</File>
+        <Text>press_space(</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>chain.py</File>
+        <Text>press_space(</Text>
+      </MustNotContain>
+      <MustVerify>
+        <Module>M-CAPTURE</Module>
+        <Module>M-MANA-OCR</Module>
+        <Module>M-DETECTORS</Module>
+        <Module>M-PAUSE-POLICY</Module>
+        <Module>M-CHAIN</Module>
+        <Module>M-PANEL</Module>
+        <Module>M-CLI</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command>python digit_grab.py test</Command>
+        <Command>python digit_grab.py check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CAPTURE />
+        <M-MANA-OCR />
+        <M-DETECTORS />
+        <M-PAUSE-POLICY />
+        <M-CHAIN />
+        <M-PANEL />
+        <M-CLI />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CAPTURE />
+        <V-M-MANA-OCR />
+        <V-M-DETECTORS />
+        <V-M-PAUSE-POLICY />
+        <V-M-CHAIN />
+        <V-M-PANEL />
+        <V-M-CLI />
+      </VerificationAnchors>
+      <ContextArtifact>requirements.xml</ContextArtifact>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>digit_grab.py</File>
+      <File>capture.py</File>
+      <File>mana_ocr.py</File>
+      <File>detectors.py</File>
+      <File>pause_policy.py</File>
+      <File>chain.py</File>
+      <File>panel.py</File>
+      <File>.grace/graph/index.xml</File>
+      <File>.grace/graph/main.xml</File>
+      <File>.grace/verification/index.xml</File>
+      <File>.grace/verification/main.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-CAPTURE: вынести окно, снимок и ввод (find_window, grab, press_space, press_key, hover, click, real_hover, real_click) в capture.py</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>capture.py с контрактом модуля; digit_grab.py импортирует оттуда, своих копий функций нет.</Criterion>
+          <Criterion>Поведение не меняется: test ok, check не хуже 42 из 48.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+          <Command>python digit_grab.py check</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-MANA-OCR: вынести распознавание маны и фильтры (flat, grad, load, load_grad, match, white_ok, read, number, mana_text, steady, recent, surge) в mana_ocr.py</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>mana_ocr.py с контрактом модуля; самопроверки распознавания и surge остаются в test.</Criterion>
+          <Criterion>test ok, check не хуже 42 из 48.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+          <Command>python digit_grab.py check</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>M-DETECTORS: вынести детекторы (game_state, light_top, wave_blocks, framed_icons, swirls, freeze_level, icon_full, pluses, filled) в detectors.py</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>detectors.py с контрактом модуля; детекторы только возвращают факты, пробел не шлют.</Criterion>
+          <Criterion>Прогон детекторов по сохранённым кадрам (waves/*.png, freeze/auto_*.png) даёт те же результаты, что до выноса; test ok.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+          <Command>python digit_grab.py check</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>M-PAUSE-POLICY: pause_policy.py — единое решение о пробеле: слать сейчас, отложить или не слать; учёт своих пробелов (в том числе цепочки), ожидания отклика игры и паузы игрока</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Событие во время цепочки или в окне ожидания отклика откладывается и даёт ровно один пробел, когда игра снова идёт.</Criterion>
+          <Criterion>Два события подряд — один пробел; на паузе игрока пробела нет, событие ждёт хода игры; пробел цепочки учитывается защитой от повторного.</Criterion>
+          <Criterion>Тесты сценариев в test на поддельных часах и поддельном состоянии игры, без окна.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>M-CHAIN: вынести цепочку в chain.py; пробелы паузы/снятия — через M-PAUSE-POLICY; прерванная цепочка ничего не жмёт</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>chain.py не вызывает press_space напрямую; шаги, тайминги и точки A-E как сейчас.</Criterion>
+          <Criterion>Тест: прерывание посреди цепочки не отправляет ни одного действия.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>M-PANEL: вынести окно и покадровый цикл в panel.py; все события пауз идут через M-PAUSE-POLICY</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>panel.py не вызывает press_space напрямую; галочки, поля, журналы и digit_grab.json как сейчас.</Criterion>
+          <Criterion>Окно запускается (python digit_grab.py и ярлык), опрос жив, ошибка кадра не останавливает опрос.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+          <Command>python digit_grab.py check</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>M-CLI и разметка: digit_grab.py — только команды запуска; START_MODULE_CONTRACT/START_MODULE_MAP во всех файлах; граф и верификация в .grace</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Каждый модуль не длиннее ~400 строк, с контрактом и картой; граф содержит M-* и связи, верификация — V-M-* с командами test/check.</Criterion>
+          <Criterion>grep press_space вне capture.py и pause_policy.py пуст.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+          <Command>python digit_grab.py check</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Живая проверка в игре: запуск с ярлыка, паузы по галочкам, цепочка до конца, без двойных пробелов</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>По digit_events.tsv: нет двух пробелов в пределах ожидания отклика; отложенные события дали паузу после цепочки.</Criterion>
+          <Criterion>Иван подтверждает, что паузы и цепочка работают как до рефакторинга.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-MODULAR-PAUSE-POLICY>
+</GraceChangePlan>
