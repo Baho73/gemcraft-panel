@@ -1,3 +1,70 @@
 <GraceVerificationDocument graceVersion="4.0">
-  <VD-MAIN></VD-MAIN>
+  <VD-MAIN>
+    <V-M-CAPTURE>
+      <Priority>medium</Priority>
+      <Command>python digit_grab.py space</Command>
+      <Scenario>success: через 3 с игра встаёт на паузу или снимается с неё (ручная проверка, нужна запущенная игра).</Scenario>
+      <TestFiles>
+        <File>digit_grab.py</File>
+      </TestFiles>
+    </V-M-CAPTURE>
+    <V-M-MANA-OCR>
+      <Priority>high</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Command>python digit_grab.py check</Command>
+      <Scenario>success: синтетические строки читаются точно; склеенные цифры и тёмный текст на светлом читаются.</Scenario>
+      <Scenario>success: steady отбрасывает одиночный выброс; surge даёт одно событие на рост после затишья и не реагирует на скачки чтения.</Scenario>
+      <Scenario>success: check — не хуже 42 из 48 кадров digit_truth.json.</Scenario>
+      <TestFiles>
+        <File>digit_grab.py</File>
+        <File>digit_truth.json</File>
+      </TestFiles>
+    </V-M-MANA-OCR>
+    <V-M-DETECTORS>
+      <Priority>high</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Scenario>success: filled даёт одно событие на держащийся переход и не реагирует на мигание.</Scenario>
+      <Scenario>failure: разделители волн у самого края полосы не роняют wave_blocks (возвращает пустой список).</Scenario>
+      <TestFiles>
+        <File>digit_grab.py</File>
+      </TestFiles>
+    </V-M-DETECTORS>
+    <V-M-PAUSE-POLICY>
+      <Priority>high</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Scenario>success: игра идёт — событие даёт ровно один пробел; второе событие в окне отклика присоединяется.</Scenario>
+      <Scenario>success: событие на паузе игрока или во время цепочки откладывается и даёт один пробел, когда игра снова идёт.</Scenario>
+      <Scenario>success: без отклика игры ожидание снимается через SPACE_WAIT; без кнопок скорости пробел вслепую не шлётся.</Scenario>
+      <TestFiles>
+        <File>pause_policy.py</File>
+      </TestFiles>
+    </V-M-PAUSE-POLICY>
+    <V-M-CHAIN>
+      <Priority>high</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Scenario>success: старт цепочки — один пробел паузы через политику, политика в режиме цепочки.</Scenario>
+      <Scenario>failure: игру сняли с паузы посреди цепочки — цепочка остановлена, ни одного действия и пробела не отправлено.</Scenario>
+      <TestFiles>
+        <File>chain.py</File>
+      </TestFiles>
+    </V-M-CHAIN>
+    <V-M-PANEL>
+      <Priority>medium</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Scenario>success: окно запускается, freeze/stats.tsv обновляется каждую секунду, в digit_errors.log нет новых ошибок (живая проверка).</Scenario>
+      <Scenario>success: по digit_events.tsv нет двух пробелов в пределах ожидания отклика; отложенные события дают паузу после цепочки.</Scenario>
+      <TestFiles>
+        <File>panel.py</File>
+      </TestFiles>
+    </V-M-PANEL>
+    <V-M-CLI>
+      <Priority>low</Priority>
+      <Command>python digit_grab.py test</Command>
+      <Command>python digit_grab.py check</Command>
+      <Scenario>success: test печатает ok, check печатает «N из 48 верно».</Scenario>
+      <TestFiles>
+        <File>digit_grab.py</File>
+      </TestFiles>
+    </V-M-CLI>
+  </VD-MAIN>
 </GraceVerificationDocument>

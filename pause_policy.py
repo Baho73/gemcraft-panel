@@ -13,6 +13,7 @@
 #   PausePolicy.observe - каждый кадр: состояние игры; снимает ожидание отклика, выпускает отложенные события
 #   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся; её пробелы учитываются
 #   SPACE_WAIT - сколько ждать отклика игры на пробел
+#   self_check - сценарии политики на поддельных часах (вызывается из test)
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY

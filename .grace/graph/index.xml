@@ -2,7 +2,15 @@
   <GraphDocuments>
     <GD-MAIN>
       <Path>graph/main.xml</Path>
-      <Owns></Owns>
+      <Owns>
+        <M-CAPTURE />
+        <M-MANA-OCR />
+        <M-DETECTORS />
+        <M-PAUSE-POLICY />
+        <M-CHAIN />
+        <M-PANEL />
+        <M-CLI />
+      </Owns>
     </GD-MAIN>
   </GraphDocuments>
 </GraceGraphIndex>

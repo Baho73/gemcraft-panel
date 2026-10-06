@@ -9,7 +9,14 @@
 #
 # START_MODULE_MAP
 #   loop - окно управления и цикл опроса; журналы digit_events.tsv, digit_frames/, digit_library/, freeze/, waves/
-#   HOVER_WAIT, STEP_GAP - тайминги цепочки по умолчанию; FROZEN - кадров неподвижной карты = пауза (без кнопок)
+#   HERE - папка проекта
+#   CFG - digit_grab.json: окно, область маны, галочки, точки цепочки
+#   UNK - незнакомые символы (digit_unknown/)
+#   FRAMES - кадры смены числа и log.tsv (digit_frames/)
+#   LIB - все изменившиеся кадры маны (digit_library/)
+#   HOVER_WAIT - пауза после наведения, с
+#   STEP_GAP - пауза между шагами цепочки, с
+#   FROZEN - кадров неподвижной карты = пауза (кнопок не видно)
 # END_MODULE_MAP
 import json, time, winsound
 from pathlib import Path

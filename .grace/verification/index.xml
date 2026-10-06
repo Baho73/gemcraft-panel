@@ -2,7 +2,15 @@
   <VerificationDocuments>
     <VD-MAIN>
       <Path>verification/main.xml</Path>
-      <Owns></Owns>
+      <Owns>
+        <V-M-CAPTURE />
+        <V-M-MANA-OCR />
+        <V-M-DETECTORS />
+        <V-M-PAUSE-POLICY />
+        <V-M-CHAIN />
+        <V-M-PANEL />
+        <V-M-CLI />
+      </Owns>
     </VD-MAIN>
   </VerificationDocuments>
 </GraceVerificationIndex>

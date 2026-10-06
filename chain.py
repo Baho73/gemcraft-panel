@@ -10,6 +10,7 @@
 #   MACRO - шаги цепочки между паузой и снятием паузы
 #   VK - коды клавиш, которые не совпадают с ord(символа)
 #   Chain - автомат: start / stop / tick; on — идёт ли
+#   self_check - прерывание посреди цепочки не шлёт ни одного действия (вызывается из test)
 # END_MODULE_MAP
 from capture import press_key, hover, click, real_hover, real_click
 

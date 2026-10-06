@@ -1,3 +1,32 @@
 <GraceGraphDocument graceVersion="4.0">
-  <GD-MAIN></GD-MAIN>
+  <GD-MAIN>
+    <M-CAPTURE>
+      <Summary>Окно игры и ввод: поиск окна по точному заголовку, снимок PrintWindow, пробел/клавиши, наведение и щелчок (сообщениями или настоящим курсором). Зависимостей внутри проекта нет.</Summary>
+      <Path>capture.py</Path>
+    </M-CAPTURE>
+    <M-MANA-OCR>
+      <Summary>Распознавание маны по маскам и фильтры чтения: steady (выбросы), recent (возврат к виденному числу), surge (рост после затишья). Только чистые функции над картинками и числами.</Summary>
+      <Path>mana_ocr.py</Path>
+    </M-MANA-OCR>
+    <M-DETECTORS>
+      <Summary>Детекторы по кадру игры: состояние (пауза/ход), индикаторы и плюсы, светлая волна, блоки волн, водоворот в рамке, заморозка, фронт события filled. Возвращают факты, пробел не шлют.</Summary>
+      <Path>detectors.py</Path>
+    </M-DETECTORS>
+    <M-PAUSE-POLICY>
+      <Summary>Единственное место решения о пробеле: послать сейчас, присоединить к паузе в пути или отложить до хода игры; учёт своих пробелов и пробелов цепочки. Пробел в окно — через M-CAPTURE (for_window).</Summary>
+      <Path>pause_policy.py</Path>
+    </M-PAUSE-POLICY>
+    <M-CHAIN>
+      <Summary>Цепочка заморозки один раз: пауза, 1-A, 2-B, 2-C, 3-D (D дважды), курсор в E, «.», снять паузу. Пробелы через M-PAUSE-POLICY, клавиши и курсор через M-CAPTURE; прерванная цепочка ничего не жмёт.</Summary>
+      <Path>chain.py</Path>
+    </M-CHAIN>
+    <M-PANEL>
+      <Summary>Окно-пульт tkinter и покадровый цикл: снимок, детекторы, мана, события паузы в M-PAUSE-POLICY, запуск M-CHAIN по отсутствию заморозки; настройки в digit_grab.json, журналы событий и ошибок.</Summary>
+      <Path>panel.py</Path>
+    </M-PANEL>
+    <M-CLI>
+      <Summary>Точка запуска: окно-пульт, select (область маны), test (самопроверки), check (сверка с digit_truth.json), space (пробный пробел через M-PAUSE-POLICY).</Summary>
+      <Path>digit_grab.py</Path>
+    </M-CLI>
+  </GD-MAIN>
 </GraceGraphDocument>
