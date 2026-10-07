@@ -13,6 +13,7 @@
 #   PausePolicy.observe - каждый кадр: состояние игры; снимает ожидание отклика, выпускает отложенные события
 #   PausePolicy.chain_begin / chain_end / chain_space - цепочка: пока идёт — события копятся (выполнена — сбрасывается только её повод); её пробелы учитываются
 #   CHAIN_TRIGGER - событие-повод цепочки: после выполненной цепочки сбрасывается только оно
+#   PausePolicy.hold_on / hold_off - кнопка «Стоп пульта»: довести игру до паузы и больше ничего не жать
 #   SPACE_WAIT - сколько ждать отклика игры на пробел
 #   self_check - сценарии политики на поддельных часах (вызывается из test)
 # END_MODULE_MAP
@@ -35,6 +36,8 @@ class PausePolicy:
         self.sent_at = 0.0
         self.chain = False        # идёт цепочка: её пробелы и шаги не перебивать
         self.pending = []         # отложенные события: (text, cols)
+        self.hold = False         # кнопка «Стоп пульта»: сами ничего не жмём, кроме одной постановки на паузу
+        self.ensure = 0           # сколько ещё пробелов можно, чтобы довести игру до паузы после «Стоп пульта»
 
     @classmethod
     def for_window(cls, hwnd, **kw):
@@ -45,11 +48,13 @@ class PausePolicy:
     # START_CONTRACT: request
     #   PURPOSE: Событие хочет поставить игру на паузу.
     #   INPUTS: { text: str - описание для журнала; cols: tuple - поля для digit_events.tsv; game: 'pause'|'run'|None }
-    #   OUTPUTS: { str - 'sent' (пробел ушёл), 'joined' (наш пробел на паузу уже в пути), 'deferred' (отложено) }
+    #   OUTPUTS: { str - 'sent' (пробел ушёл), 'joined' (наш пробел на паузу уже в пути), 'deferred' (отложено), 'held' (пульт на стопе) }
     #   SIDE_EFFECTS: может нажать пробел (self.press)
     # END_CONTRACT: request
     def request(self, text, cols, game):
         now = self.clock()
+        if self.hold:
+            return "held"  # пульт на стопе — Иван управляет сам
         if self.awaiting == "pause" and not self.chain:
             return "joined"  # пауза уже в пути — второй пробел снял бы её
         if self.chain or self.awaiting or game != "run":
@@ -71,11 +76,26 @@ class PausePolicy:
         elif self.awaiting and now - self.sent_at > self.wait:
             self.log(f"пробел без отклика {self.wait:.0f} с (ждали «{self.awaiting}») — ожидание снято")
             self.awaiting = None
+        if self.hold:  # довести игру до паузы (не больше self.ensure пробелов), остальное не трогать
+            if game == "pause":
+                self.ensure = 0
+            elif self.ensure and not self.awaiting and game == "run":
+                self.ensure -= 1
+                self._space("pause", now)
+            return []
         if self.pending and not self.chain and not self.awaiting and game == "run":
             out, self.pending = self.pending, []
             self._space("pause", now)  # все отложенные — одним пробелом
             return out
         return []
+
+    def hold_on(self):
+        """Кнопка «Стоп пульта» (Иван, 7.10: «гонки с тобой»): отложенное сбросить, игру довести до паузы
+        (пробел — в observe, когда наш прошлый пробел отработает), дальше сами ничего не жмём."""
+        self.hold, self.ensure, self.pending = True, 2, []
+
+    def hold_off(self):
+        self.hold, self.ensure = False, 0
 
     def chain_begin(self):
         self.chain = True
@@ -185,4 +205,14 @@ def self_check():
     p.chain_begin()
     assert p.request("w2", ("wave", 50), "pause") == "deferred"
     assert [e[0] for e in p.chain_end(drop=True, paused=True)] == ["w2"] and not p.pending
+    # 10. «Стоп пульта» при идущей игре: один пробел на паузу, потом ничего; события не жмут; после отпускания — как обычно
+    n = len(spaces)
+    p.hold_on()
+    assert tick("run") == [] and len(spaces) == n + 1
+    assert p.request("x", (), "run") == "held" and len(spaces) == n + 1
+    tick("pause")  # пауза встала
+    tick("run")    # Иван сам снял паузу — пульт не вмешивается
+    assert len(spaces) == n + 1 and not p.pending
+    p.hold_off()
+    assert p.request("y", (), "run") == "sent" and len(spaces) == n + 2
 # END_BLOCK_SELF_CHECK

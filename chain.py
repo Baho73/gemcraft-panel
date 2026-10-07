@@ -50,6 +50,9 @@ class Chain:
         if not all(n in self.points for n in "ABCD"):
             self.status("цепочка: задайте точки A, B, C, D")
             return False
+        if self.policy.hold:
+            self.status("цепочка: пульт на стопе")
+            return False
         if self.policy.busy():
             self.log("политика ждёт отклика на пробел — цепочку не запускаю")
             return False
@@ -153,7 +156,7 @@ def self_check():
 
     class Policy:
         def __init__(self):
-            self.spaces, self.chain = [], False
+            self.spaces, self.chain, self.hold = [], False, False
 
         def busy(self):
             return False

@@ -82,6 +82,23 @@ def loop(interval):
         except Exception:  # Windows иногда запрещает отдавать фокус — не страшно
             pass
     root.after(300, give_focus_back)
+
+    def hold_toggle():
+        """Иван: «гонки с тобой» — одна кнопка: оборвать цепочку, сбросить отложенное, поставить игру на паузу
+        и больше ничего самим не жать. Повторное нажатие — пульт снова работает (игру не трогает)."""
+        if policy.hold:
+            policy.hold_off()
+            hold_btn.config(text="СТОП ПУЛЬТА (пауза)", bg="#c62828")
+            print(time.strftime("%H%M%S"), "ПУЛЬТ: снова работает", flush=True)
+        else:
+            chain.stop("кнопка «Стоп пульта»")
+            policy.hold_on()
+            hold_btn.config(text="Пульт на стопе — нажать, чтобы продолжить", bg="#9e9e9e")
+            print(time.strftime("%H%M%S"), "ПУЛЬТ: стоп — цепочка оборвана, отложенное сброшено, игра на паузу",
+                  flush=True)
+    hold_btn = tk.Button(root, text="СТОП ПУЛЬТА (пауза)", bg="#c62828", fg="white", font=("Segoe UI", 12, "bold"),
+                         command=hold_toggle)
+    hold_btn.pack(fill="x", padx=8, pady=(6, 4))
     pause = cfg.setdefault("pause", {})
     names = {"left": "левый", "right": "правый"}
     checks = {}
@@ -338,7 +355,7 @@ def loop(interval):
         if r == "sent":
             winsound.MessageBeep()  # асинхронно, не тормозит
         log_event(stamp, t, text, cols, {"sent": None, "joined": "пауза уже в пути",
-                                         "deferred": "отложено до хода игры"}[r])
+                                         "deferred": "отложено до хода игры", "held": "пульт на стопе"}[r])
 
     def released(stamp, t, evs):
         """Отложенные события дали один пробел, когда игра снова пошла."""
