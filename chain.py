@@ -27,12 +27,13 @@ class Chain:
     """Один прогон цепочки. Всё внешнее передаётся снаружи: окно, политика паузы, точки, настройки, таймер, журнал."""
 
     def __init__(self, hwnd, policy, points, settings, game, schedule, log, status, on_change=lambda on: None,
-                 after_click=lambda point: None):
+                 after_click=lambda point: None, blocker=lambda: None):
+        # blocker(): причина не снимать паузу в конце (текст) или None
         # points: живой словарь точек {"A": [x, y], …}; settings(): {"real": bool, "gap": с, "wait": с}
         # game(): 'pause'|'run'|None; schedule(мс, функция) — таймер окна; log/status — журнал и строка окна
         self.hwnd, self.policy, self.points, self.settings = hwnd, policy, points, settings
         self.game, self.schedule, self.log, self.status = game, schedule, log, status
-        self.on_change, self.after_click = on_change, after_click
+        self.on_change, self.after_click, self.blocker = on_change, after_click, blocker
         self.on, self.i, self.tries = False, 0, 0
 
     @staticmethod
@@ -60,13 +61,14 @@ class Chain:
         self.tick()
         return True
 
-    def stop(self, why):
+    def stop(self, why, done=False, paused=False):
+        """done — цепочка выполнена (её повод сбрасывается); paused — оставлена на паузе из-за блокера
+        (тогда сбрасываются все отложенные события: игра и так стоит)."""
         if not self.on:
             return
-        mid = 0 < self.i < len(self.steps()) - 1  # прервали внутри — игра стоит на паузе цепочки
+        mid = 0 < self.i < len(self.steps()) - 1 and not paused  # прервали внутри — игра стоит на паузе цепочки
         self.on = False
-        done = self.i == len(self.steps()) - 1
-        dropped = self.policy.chain_end(drop=done)  # Иван: после выполненной цепочки игра идёт, без паузы
+        dropped = self.policy.chain_end(drop=done, paused=paused)  # Иван: после выполненной цепочки игра идёт
         self.on_change(False)
         self.status(f"цепочка остановлена: {why}" + (" (игра на паузе)" if mid else ""))
         self.log(f"стоп: {why}" + (f"; без паузы после цепочки: {', '.join(t for t, _ in dropped)}" if dropped else ""))
@@ -95,12 +97,17 @@ class Chain:
             elif self.tries >= 1:  # один пробел и ждём; повтор мог бы снять только что поставленную паузу
                 self.stop(f"игра не {'встала на паузу' if want == 'pause' else 'пошла'} после пробела")
                 return
+            elif want == "run" and self.blocker():
+                # Иван: есть блокер (светлая волна выше строки и т. п.) — не снимать паузу: после снятия
+                # условие уже не «новое», и игру больше ничто не остановит
+                self.stop(f"выполнена, игра оставлена на паузе: {self.blocker()}", done=True, paused=True)
+                return
             else:
                 self.policy.chain_space(want)
                 self.tries += 1
                 self.log(f"пробел ({'пауза' if want == 'pause' else 'снять паузу'}), попытка {self.tries}")
         elif kind == "done":
-            self.stop("выполнена")
+            self.stop("выполнена", done=True)
             return
         elif state == "run":
             # игру сняли с паузы посреди цепочки (Иван или прошлый шаг) — прервать и ничего не жать
@@ -154,8 +161,8 @@ def self_check():
         def chain_begin(self):
             self.chain = True
 
-        def chain_end(self, drop=False):
-            self.chain = False
+        def chain_end(self, drop=False, paused=False):
+            self.chain, self.ended = False, (drop, paused)
             return []
 
         def chain_space(self, want):
@@ -175,4 +182,20 @@ def self_check():
     sent.clear()
     queue.pop(0)()   # шаг навести на A — прерывание
     assert not ch.on and not pol.chain and sent == [] and not queue and pol.spaces == ["pause"]
+    # блокер в конце (светлая волна выше строки) — паузу не снимаем, цепочка выполнена (Иван, 7.10)
+    block = ["светлая волна"]
+    pol = Policy()
+    ch = Chain(0, pol, {n: [1, 1] for n in "ABCDE"}, lambda: {"real": True, "gap": 1, "wait": 1}, lambda: game[0],
+               lambda ms, fn: queue.append(fn), lambda *a, **k: None, lambda *a: None, blocker=lambda: block[0])
+    game[0] = "run"
+    assert ch.start("тест")
+    game[0] = "pause"
+    while queue:
+        queue.pop(0)()
+    assert not ch.on and pol.spaces == ["pause"] and pol.ended == (True, True)
+    block[0] = None  # блокера нет — в конце пробел «снять паузу»
+    assert ch.start("тест")
+    while queue and pol.spaces[-1] != "run":
+        queue.pop(0)()
+    assert pol.spaces == ["pause", "run"]  # игра уже стояла — пробел паузы не нужен
 # END_BLOCK_SELF_CHECK

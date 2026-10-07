@@ -222,11 +222,26 @@ def loop(interval):
                 root.after(delay, lambda d=delay: freeze_sample(f"через {d // 1000} с",
                                                                 st["frames"][-1][1] if st["frames"] else None))
 
+    def blocker():
+        """Иван: условие паузы держится сейчас — в конце цепочки паузу не снимать (иначе игру больше ничто не остановит).
+        Только условия-состояния с включённой галочкой; плюс левого — повод цепочки, не блокер."""
+        top, wy = st.get("wave_top"), wave_y()
+        if checks["wave"].get() and top is not None and wy is not None and top <= wy:
+            return f"светлая волна выше строки {wy} (с {top})"
+        if checks["mana_above"].get() and st["above_raw"]:
+            return "мана выше порога"
+        if checks["swirl"].get() and st.get("swirls"):
+            return "водоворот в жёлтой рамке"
+        for k in icons:
+            if checks[f"{k}_full"].get() and st.get(f"full_{k}"):
+                return f"{names.get(k, k)} индикатор заполнен"
+        return None
+
     chain = Chain(hwnd, policy, mc["points"],
                   lambda: {"real": real_var.get(), "gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
                   lambda: st.get("state"), root.after, mlog, lambda text: status.set(text),
                   on_change=lambda on: mbtn.config(text="Стоп цепочки" if on else "Пуск цепочки"),
-                  after_click=after_click)
+                  after_click=after_click, blocker=blocker)
     mbtn = tk.Button(prow, text="Пуск цепочки",
                      command=lambda: chain.stop("вручную") if chain.on else chain.start("вручную"))
     mbtn.pack(side="right")
@@ -406,6 +421,7 @@ def loop(interval):
                 st["noplus_said"] = False
         found = {(x // 8, y // 8) for x, y in swirls(full)}  # значки стоят на месте; //8 — на дрожь в пиксель
         swirl_now.set(f"сейчас: {len(found)}")
+        st["swirls"] = len(found)
         for key in found - swirl_ev.keys():
             swirl_ev[key] = filled(confirm=2, release=30)  # снаряды заслоняют на миг — «снова нет» только через 3 с
         for key, det in swirl_ev.items():

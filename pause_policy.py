@@ -80,11 +80,15 @@ class PausePolicy:
     def chain_begin(self):
         self.chain = True
 
-    def chain_end(self, drop=False):
+    def chain_end(self, drop=False, paused=False):
         """drop=True — цепочка выполнена: сбросить её собственный повод (первый плюс левого), игра идёт дальше
         (Иван, 6.10). Остальное (светлая волна, мана, водоворот) остаётся и даст паузу, когда игра пойдёт.
+        paused=True — цепочка оставила игру на паузе (блокер): сбросить всё, пауза уже есть.
         Возвращает сброшенные события."""
         self.chain = False
+        if paused:
+            out, self.pending = self.pending, []
+            return out
         if not drop:
             return []
         out = [e for e in self.pending if tuple(e[1]) == CHAIN_TRIGGER]
@@ -176,4 +180,9 @@ def self_check():
     p.chain_space("run")
     assert [e[0] for e in p.chain_end(drop=True)] == ["i2"]
     assert [e[0] for e in tick("run")] == ["w"] and len(spaces) == n + 3
+    # 9. цепочка оставила игру на паузе (блокер) — сбрасывается всё: пауза уже есть, лишнего пробела потом нет
+    tick("pause")
+    p.chain_begin()
+    assert p.request("w2", ("wave", 50), "pause") == "deferred"
+    assert [e[0] for e in p.chain_end(drop=True, paused=True)] == ["w2"] and not p.pending
 # END_BLOCK_SELF_CHECK
