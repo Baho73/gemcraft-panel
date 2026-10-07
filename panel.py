@@ -14,11 +14,12 @@
 #   UNK - незнакомые символы (digit_unknown/)
 #   FRAMES - кадры смены числа и log.tsv (digit_frames/)
 #   LIB - все изменившиеся кадры маны (digit_library/)
+#   WAVE_MARGIN - запас строк: волна ближе к порогу — цепочка не снимает паузу
 #   HOVER_WAIT - пауза после наведения, с
 #   STEP_GAP - пауза между шагами цепочки, с
 #   FROZEN - кадров неподвижной карты = пауза (кнопок не видно)
 # END_MODULE_MAP
-import json, time, winsound
+import builtins, json, time, winsound
 from pathlib import Path
 
 import cv2, numpy as np, win32gui
@@ -36,7 +37,8 @@ FRAMES = HERE / "digit_frames"
 LIB = HERE / "digit_library"
 HOVER_WAIT = 5.0    # после наведения мыши ждём столько, потом щелчок в той же точке
 STEP_GAP = 1.0      # пауза после каждого шага цепочки, с (Иван: пауза, секунда, 1, секунда, щелчок, секунда)
-FROZEN = 3          # столько кадров подряд карта не меняется — игра на паузе, пробел не шлём
+WAVE_MARGIN = 5    # в конце цепочки паузу не снимаем, если светлая волна ближе стольких строк к порогу
+FROZEN = 3         # столько кадров подряд карта не меняется — игра на паузе, пробел не шлём
 
 
 def loop(interval):
@@ -59,12 +61,20 @@ def loop(interval):
     win32gui.EnumWindows(lambda h, _: mine.append(h) if win32gui.GetWindowText(h).startswith("GemCraft: ") else None, None)
     if mine:
         win32gui.ShowWindow(mine[0], 9)  # SW_RESTORE
-        print("окно уже открыто — развернул его", flush=True)
+        builtins.print("окно уже открыто — развернул его", flush=True)
         return
     was_active = win32gui.GetForegroundWindow()  # окно скрипта при запуске забирает фокус, а игра без фокуса встаёт на паузу
     root = tk.Tk()
     root.title("GemCraft: пауза")
     root.attributes("-topmost", True)
+    logbox = []  # Иван: «где терминал?» — журнал (всё, что печатается) показываем внизу окна
+
+    def print(*a, **k):  # ponytail: подменяем print внутри loop — все вложенные журналы идут и в окно
+        builtins.print(*a, **k)
+        if logbox:
+            logbox[0].insert("end", " ".join(map(str, a)) + "\n")
+            logbox[0].delete("1.0", "end-201l")  # держим последние ~200 строк
+            logbox[0].see("end")
 
     def give_focus_back():
         try:
@@ -226,8 +236,9 @@ def loop(interval):
         """Иван: условие паузы держится сейчас — в конце цепочки паузу не снимать (иначе игру больше ничто не остановит).
         Только условия-состояния с включённой галочкой; плюс левого — повод цепочки, не блокер."""
         top, wy = st.get("wave_top"), wave_y()
-        if checks["wave"].get() and top is not None and wy is not None and top <= wy:
-            return f"светлая волна выше строки {wy} (с {top})"
+        if checks["wave"].get() and top is not None and wy is not None and top <= wy + WAVE_MARGIN:
+            # с запасом: волна ползёт ~1 строку за 2 с, на 63 при пороге 60 игра встала бы уже через 7 с (Иван, 7.10)
+            return f"светлая волна у строки {wy} (с {top}, запас {WAVE_MARGIN})"
         if checks["mana_above"].get() and st["above_raw"]:
             return "мана выше порога"
         if checks["swirl"].get() and st.get("swirls"):
@@ -302,6 +313,8 @@ def loop(interval):
     pic.pack(padx=8)
     status = tk.StringVar(value="захват идёт")
     tk.Label(root, textvariable=status, anchor="w", fg="gray30").pack(fill="x", padx=8, pady=(0, 6))
+    logbox.append(tk.Text(root, height=10, width=90, font=("Consolas", 9)))
+    logbox[0].pack(fill="both", expand=True, padx=8, pady=(0, 6))
 
     # START_BLOCK_EVENTS
     def game_now():
