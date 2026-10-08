@@ -19,7 +19,7 @@
 #   STEP_GAP - пауза между шагами цепочки, с
 #   FROZEN - кадров неподвижной карты = пауза (кнопок не видно)
 # END_MODULE_MAP
-import builtins, json, time, winsound
+import builtins, json, re, time, winsound
 from pathlib import Path
 
 import cv2, numpy as np, win32gui
@@ -57,6 +57,15 @@ def loop(interval):
     full_ev = {k: filled() for k in icons}
     plus_ev = {k: filled() for k in icons}
 
+    import win32api, win32event, winerror
+    st["lock"] = win32event.CreateMutex(None, False, "GemCraftPausePanel")  # держится, пока жив процесс
+    if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+        builtins.print("пульт уже запущен (блокировка Windows) — второй не запускаю", flush=True)
+        mine = []
+        win32gui.EnumWindows(lambda h, _: mine.append(h) if win32gui.GetWindowText(h).startswith("GemCraft: ") else None, None)
+        if mine:
+            win32gui.ShowWindow(mine[0], 9)  # SW_RESTORE
+        return
     mine = []  # уже запущено? второе окно слало бы двойные пробелы — разворачиваем первое и выходим
     win32gui.EnumWindows(lambda h, _: mine.append(h) if win32gui.GetWindowText(h).startswith("GemCraft: ") else None, None)
     if mine:
@@ -442,15 +451,22 @@ def loop(interval):
             elif st.get("nofreeze_since") is None:
                 st["nofreeze_since"] = t
             lp = st.get("plus_left", 0)
-            ready = (checks["macro"].get() and not chain.on and st.get("nofreeze_since") is not None
-                     and t - st["nofreeze_since"] >= secs(fdelay_var, 3.0))
-            if ready and lp:  # Иван: без «не чаще 15 с» — цепочка сама идёт ~30 с, заморозка за это время ложится
-                chain.start(f"заморозки нет {t - st['nofreeze_since']:.0f} с, плюсов у левого: {lp}")
-            elif ready and not st.get("noplus_said"):
-                st["noplus_said"] = True
-                mlog("заморозки нет, но у левого индикатора нет плюсов — жду плюс")
-            if lp:
-                st["noplus_said"] = False
+            since, delay = st.get("nofreeze_since"), secs(fdelay_var, 3.0)
+            # почему цепочка не стартует — первой же причиной, в окно и (при смене) в журнал
+            why = ("идёт" if chain.on else "галочка выключена" if not checks["macro"].get()
+                   else "пульт на стопе" if policy.hold else f"заморозка есть (тон {frz:.0f})" if frozen
+                   else f"игра не идёт ({st.get('state')})" if st.get("state") != "run"
+                   else f"ход без заморозки {t - since:.0f} из {delay:g} с" if t - since < delay
+                   else "нет плюса у левого" if not lp else "жду отклика на пробел" if policy.busy() else "")
+            if why == "":
+                why = ("идёт" if chain.start(f"заморозки нет {t - since:.0f} с, плюсов у левого: {lp}")
+                       else "не запустилась — см. строку статуса")
+            key = re.sub(r"\d+", "", why)  # секунды и тон меняются каждый кадр — в журнал только смену причины
+            if key != st.get("chain_why_key"):
+                st["chain_why_key"] = key
+                if why != "идёт":
+                    mlog(f"ждёт: {why}")
+            st["chain_why"] = why
         found = {(x // 8, y // 8) for x, y in swirls(full)}  # значки стоят на месте; //8 — на дрожь в пиксель
         swirl_now.set(f"сейчас: {len(found)}")
         st["swirls"] = len(found)
@@ -530,7 +546,8 @@ def loop(interval):
         lines.append(f"Заморозка: {'есть' if frz < lim_sat else 'нет'}, тон {frz:.0f} (порог {lim_sat:g})"
                      if frz is not None else "Заморозка: точка A не задана")
         lines.append(f"Водоворотов в рамке: {len(found)}")
-        lines.append(f"Цепочка: {'идёт' if chain.on else 'ждёт'}, отложено событий: {len(policy.pending)}"
+        lines.append(f"Цепочка: {'идёт' if chain.on else 'ждёт — ' + st.get('chain_why', '?')}, "
+                     f"отложено событий: {len(policy.pending)}"
                      + (f", жду отклика на пробел ({policy.awaiting})" if policy.awaiting else ""))
         params.set("\n".join(lines))
         png = cv2.imencode(".png", cv2.resize(bgr, None, fx=2, fy=2, interpolation=cv2.INTER_NEAREST))[1]
