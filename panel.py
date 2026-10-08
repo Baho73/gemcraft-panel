@@ -195,7 +195,7 @@ def loop(interval):
     checks["macro"] = tk.BooleanVar(value=pause.get("macro", False))
     tk.Checkbutton(crow, text="Цепочка, когда кончилась заморозка, через", variable=checks["macro"],
                    command=lambda: save_pause()).pack(side="left")
-    fdelay_var = tk.StringVar(value=str(mc.get("freeze_delay", 3.0)))
+    fdelay_var = tk.StringVar(value=str(mc.get("freeze_delay", 1.0)))
     tk.Entry(crow, textvariable=fdelay_var, width=4).pack(side="left")
     tk.Label(crow, text="с").pack(side="left")
     freeze_now = tk.StringVar(value="")
@@ -240,7 +240,7 @@ def loop(interval):
 
     def save_macro(*_):
         mc.update(real_mouse=real_var.get(), step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
-                  freeze_delay=secs(fdelay_var, 3.0), freeze_sat=secs(sat_var, FREEZE_SAT))
+                  freeze_delay=secs(fdelay_var, 1.0), freeze_sat=secs(sat_var, FREEZE_SAT))
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
     for v in (real_var, gap_var, wait_var, fdelay_var, sat_var):
         v.trace_add("write", save_macro)
@@ -454,7 +454,7 @@ def loop(interval):
             elif st.get("nofreeze_since") is None:
                 st["nofreeze_since"] = t
             lp = st.get("plus_left", 0)
-            since, delay = st.get("nofreeze_since"), secs(fdelay_var, 3.0)
+            since, delay = st.get("nofreeze_since"), secs(fdelay_var, 1.0)
             # почему цепочка не стартует — первой же причиной, в окно и (при смене) в журнал
             why = ("идёт" if chain.on else "галочка выключена" if not checks["macro"].get()
                    else "пульт на стопе" if policy.hold else f"заморозка есть (тон {frz:.0f})" if frozen
