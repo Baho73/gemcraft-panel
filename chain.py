@@ -54,7 +54,7 @@ class Chain:
             self.status("цепочка: пульт на стопе")
             return False
         if self.policy.busy():
-            self.log("политика ждёт отклика на пробел — цепочку не запускаю")
+            self.status("цепочка: жду отклика игры на пробел")  # в строку окна, не в журнал: проверка идёт каждый кадр
             return False
         self.on, self.i, self.tries = True, 0, 0
         self.policy.chain_begin()

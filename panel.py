@@ -440,9 +440,8 @@ def loop(interval):
                 st["nofreeze_since"] = t
             lp = st.get("plus_left", 0)
             ready = (checks["macro"].get() and not chain.on and st.get("nofreeze_since") is not None
-                     and t - st["nofreeze_since"] >= secs(fdelay_var, 3.0) and t - st.get("chain_done", 0) > 15)
-            if ready and lp:
-                st["chain_done"] = t  # не чаще раза в 15 с: заморозка ложится не сразу
+                     and t - st["nofreeze_since"] >= secs(fdelay_var, 3.0))
+            if ready and lp:  # Иван: без «не чаще 15 с» — цепочка сама идёт ~30 с, заморозка за это время ложится
                 chain.start(f"заморозки нет {t - st['nofreeze_since']:.0f} с, плюсов у левого: {lp}")
             elif ready and not st.get("noplus_said"):
                 st["noplus_said"] = True
