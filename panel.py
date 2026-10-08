@@ -435,9 +435,12 @@ def loop(interval):
                 fl = freeze_level(full, mc["points"].get("A")) if k == "left" else None
                 if fl is not None and fl < secs(sat_var, FREEZE_SAT):  # Иван: заморозка лежит — плюс левого не повод для паузы
                     mlog(f"левый: первый плюс, но заморозка есть ({fl:.0f}) — без паузы")
-                elif k == "left" and checks["macro"].get():
-                    # плюс левого без заморозки — повод цепочки; пауза по нему держала бы цепочку (ей нужен ход игры)
-                    mlog("левый: первый плюс — паузу не ставлю, им займётся цепочка")
+                elif (k == "left" and checks["macro"].get() and st.get("state") == "run" and not policy.hold
+                      and t - st["start"] >= 1.0):  # первую секунду — плюс уже был на экране, не событие
+                    # плюс левого без заморозки — сразу цепочка: её первый шаг и есть пауза (Иван, 8.10: «не встала
+                    # на паузу» — ждать 5 с хода игры здесь нельзя). Не стартовала — обычная пауза по плюсу
+                    if not chain.on and not chain.start("первый плюс левого, заморозки нет"):
+                        event(stamp, t, f"{names.get(k, k)} индикатор: первый плюс", "indicator", k, "plus")
                 else:
                     event(stamp, t, f"{names.get(k, k)} индикатор: первый плюс", "indicator", k, "plus")
         frz = freeze_level(full, mc["points"].get("A"))  # насыщенность в круге вокруг A: ~94 заморозка, ~155 нет
