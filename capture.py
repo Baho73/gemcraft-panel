@@ -36,23 +36,28 @@ def find_window(part):
     return (exact or found)[0]
 
 
-def grab(hwnd, roi=None, color=False):
-    # PrintWindow: окно рисует себя в память, поэтому его можно перекрыть другими окнами; свёрнутое — нельзя
+def grab(hwnd, roi=None, color=False, screen=False):
+    # PrintWindow: окно рисует себя в память, поэтому его можно перекрыть другими окнами; свёрнутое — нельзя.
+    # screen=True — копия с экрана (BitBlt): 54 мс против 5 с у PrintWindow на тяжёлой игре (11.10) и игру не грузит,
+    # но окно игры ничто не должно перекрывать
     W, H = win32gui.GetClientRect(hwnd)[2:]
-    hdc = win32gui.GetWindowDC(hwnd)
+    hdc = win32gui.GetDC(0) if screen else win32gui.GetWindowDC(hwnd)
     src = win32ui.CreateDCFromHandle(hdc)
     mem = src.CreateCompatibleDC()
     bmp = win32ui.CreateBitmap()
     bmp.CreateCompatibleBitmap(src, W, H)
     mem.SelectObject(bmp)
     try:
-        ctypes.windll.user32.PrintWindow(hwnd, mem.GetSafeHdc(), 3)  # 1 = только клиентская часть, 2 = DirectX/AIR
+        if screen:
+            mem.BitBlt((0, 0), (W, H), src, win32gui.ClientToScreen(hwnd, (0, 0)), 0x00CC0020)  # SRCCOPY
+        else:
+            ctypes.windll.user32.PrintWindow(hwnd, mem.GetSafeHdc(), 3)  # 1 = только клиентская часть, 2 = DirectX/AIR
         img = np.frombuffer(bmp.GetBitmapBits(True), np.uint8).reshape(H, W, 4)
     finally:
         win32gui.DeleteObject(bmp.GetHandle())
         mem.DeleteDC()
         src.DeleteDC()
-        win32gui.ReleaseDC(hwnd, hdc)
+        win32gui.ReleaseDC(0 if screen else hwnd, hdc)
     x, y, w, h = roi or (0, 0, W, H)
     return cv2.cvtColor(img[y:y + h, x:x + w], cv2.COLOR_BGRA2BGR if color else cv2.COLOR_BGRA2GRAY)
 

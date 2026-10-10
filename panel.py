@@ -19,7 +19,7 @@
 #   STEP_GAP - пауза между шагами цепочки, с
 #   FROZEN - кадров неподвижной карты = пауза (кнопок не видно)
 # END_MODULE_MAP
-import builtins, json, re, time, winsound
+import builtins, ctypes, json, re, time, winsound
 from pathlib import Path
 
 import cv2, numpy as np, win32gui
@@ -226,6 +226,24 @@ def loop(interval):
     trow.pack(fill="x", padx=8)
     real_var = tk.BooleanVar(value=mc.get("real_mouse", True))
     tk.Checkbutton(trow, text="настоящий курсор", variable=real_var).pack(side="left")
+    screen_var = tk.BooleanVar(value=cfg.get("screen_grab", True))  # снимать с экрана: быстро, игру не грузит
+
+    def save_screen():
+        cfg["screen_grab"] = screen_var.get()
+        CFG.write_text(json.dumps(cfg), encoding="utf-8")
+    tk.Checkbutton(trow, text="снимать с экрана", variable=screen_var, command=save_screen).pack(side="left")
+
+    def keep_clear():
+        """С экрана снимается то, что видно: пульт не должен лежать на игре — отодвигаем его левее (или правее)."""
+        gl, gt, gr, gb = win32gui.GetWindowRect(hwnd)
+        pl, pt, pr, pb = win32gui.GetWindowRect(int(root.wm_frame(), 16))  # рамка окна пульта
+        if pr <= gl or pl >= gr or pb <= gt or pt >= gb:
+            return
+        x = gl - (pr - pl)
+        if x < ctypes.windll.user32.GetSystemMetrics(76):  # SM_XVIRTUALSCREEN: слева места нет — ставим справа
+            x = gr
+        root.geometry(f"+{x}+{pt}")
+        print(time.strftime("%H%M%S"), "ПУЛЬТ: лежал на игре — отодвинул", flush=True)
     gap_var = tk.StringVar(value=str(mc.get("step_gap", STEP_GAP)))
     wait_var = tk.StringVar(value=str(mc.get("hover_wait", HOVER_WAIT)))
     # Иван, 10.10: игра под нагрузкой откликается на пробел дольше 20 с — сколько ждать, настраивается
@@ -403,7 +421,9 @@ def loop(interval):
         t = time.time()
         stamp = time.strftime("%H%M%S", time.localtime(t)) + f"_{int(t * 1000) % 1000:03d}"
         try:
-            full = grab(hwnd, None, color=True)  # окно целиком один раз: из него и мана, и индикаторы
+            if screen_var.get():
+                keep_clear()
+            full = grab(hwnd, None, color=True, screen=screen_var.get())  # окно целиком: из него и мана, и индикаторы
         except Exception as e:  # окно свернули или закрыли — ждём, не падаем
             status.set(f"нет снимка окна: {e}")
             root.after(1000, step)
