@@ -226,6 +226,13 @@ def loop(interval):
     trow.pack(fill="x", padx=8)
     real_var = tk.BooleanVar(value=mc.get("real_mouse", True))
     tk.Checkbutton(trow, text="настоящий курсор", variable=real_var).pack(side="left")
+    # Иван, 11.10: цепочка не должна отнимать мышь — наводим сообщением; галочка — если игра так не понимает
+    hover_real_var = tk.BooleanVar(value=mc.get("hover_real", False))
+
+    def save_hover():
+        mc["hover_real"] = hover_real_var.get()
+        CFG.write_text(json.dumps(cfg), encoding="utf-8")
+    tk.Checkbutton(trow, text="наводить курсором", variable=hover_real_var, command=save_hover).pack(side="left")
     screen_var = tk.BooleanVar(value=cfg.get("screen_grab", True))  # снимать с экрана: быстро, игру не грузит
 
     def save_screen():
@@ -298,7 +305,7 @@ def loop(interval):
         return None
 
     chain = Chain(hwnd, policy, mc["points"],
-                  lambda: {"real": real_var.get(), "gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
+                  lambda: {"real": real_var.get(), "hover_real": hover_real_var.get(),"gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
                   lambda: st.get("state"), root.after, mlog, lambda text: status.set(text),
                   on_change=lambda on: mbtn.config(text="Стоп цепочки" if on else "Пуск цепочки"),
                   after_click=after_click, blocker=blocker)

@@ -13,9 +13,9 @@
 #   hover / click - курсор и щелчок сообщением, без движения настоящей мыши
 #   real_hover / real_click - настоящий курсор и щелчок (клики сообщением игра не принимает)
 #   click - щелчок сообщением в точку окна
-#   real_click - щелчок настоящим курсором
+#   real_click - щелчок настоящим курсором с возвратом курсора и фокуса
 # END_MODULE_MAP
-import ctypes, sys
+import ctypes, sys, time
 
 import cv2, numpy as np, win32gui, win32ui
 
@@ -90,10 +90,24 @@ def real_hover(hwnd, x, y):
 
 
 def real_click(hwnd, x, y):
-    """Настоящий щелчок: курсор на точку и левая кнопка. Щёлкает то, что на экране сверху — игра должна быть видна."""
-    real_hover(hwnd, x, y)
-    ctypes.windll.user32.mouse_event(0x0002, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
-    ctypes.windll.user32.mouse_event(0x0004, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
+    """Настоящий щелчок по точке окна и сразу назад: курсор и фокус возвращаются туда, где работал Иван (11.10).
+    Координаты зашиты в само событие (ABSOLUTE), поэтому возврат курсора не сбивает щелчок. Щёлкает то, что на
+    экране сверху — игра должна быть видна."""
+    u = ctypes.windll.user32
+    was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
+    sx, sy = win32gui.ClientToScreen(hwnd, (x, y))
+    vx, vy, vw, vh = (u.GetSystemMetrics(i) for i in (76, 77, 78, 79))  # виртуальный экран: все мониторы
+    ax, ay = (sx - vx) * 65535 // (vw - 1), (sy - vy) * 65535 // (vh - 1)
+    flags = 0x0001 | 0x8000 | 0x4000  # MOVE | ABSOLUTE | VIRTUALDESK
+    u.mouse_event(flags | 0x0002, ax, ay, 0, 0)  # + LEFTDOWN
+    u.mouse_event(flags | 0x0004, ax, ay, 0, 0)  # + LEFTUP
+    time.sleep(0.05)  # дать системе разнести щелчок, потом вернуть курсор
+    u.SetCursorPos(*was_pos)
+    if was_fg and was_fg != hwnd:
+        try:
+            win32gui.SetForegroundWindow(was_fg)
+        except Exception:  # Windows иногда запрещает отдавать фокус — не страшно
+            pass
 
 
 def click(hwnd, x, y):

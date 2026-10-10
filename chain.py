@@ -124,7 +124,7 @@ class Chain:
         elif kind == "away":
             p = self.points.get(arg)
             if p:
-                (real_hover if cfg["real"] else hover)(self.hwnd, *p)
+                (real_hover if cfg["real"] and cfg.get("hover_real") else hover)(self.hwnd, *p)
                 self.log(f"курсор в сторону, на {arg} {p}")
             else:
                 self.log(f"точка {arg} не задана — курсор не увожу")
@@ -135,8 +135,8 @@ class Chain:
                 self.stop(f"не задана точка {arg}")
                 return
             if kind == "hover":
-                (real_hover if cfg["real"] else hover)(self.hwnd, *p)
-                self.log(f"навёл {'курсор' if cfg['real'] else 'мышь (сообщением)'} на {arg} {p}")
+                (real_hover if cfg["real"] and cfg.get("hover_real") else hover)(self.hwnd, *p)
+                self.log(f"навёл {'курсор' if cfg['real'] and cfg.get('hover_real') else 'мышь (сообщением)'} на {arg} {p}")
                 nxt = cfg["wait"]
             else:
                 (real_click if cfg["real"] else click)(self.hwnd, *p)
