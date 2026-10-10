@@ -28,7 +28,7 @@ from capture import find_window, grab
 from chain import Chain
 from detectors import FIELD, FREEZE_SAT, filled, freeze_level, game_state, icon_full, light_top, pluses, swirls, wave_blocks
 from mana_ocr import load, load_grad, mana_text, number, read, recent, steady, surge
-from pause_policy import PausePolicy
+from pause_policy import SPACE_WAIT, PausePolicy
 
 HERE = Path(__file__).parent
 CFG = HERE / "digit_grab.json"
@@ -228,7 +228,9 @@ def loop(interval):
     tk.Checkbutton(trow, text="настоящий курсор", variable=real_var).pack(side="left")
     gap_var = tk.StringVar(value=str(mc.get("step_gap", STEP_GAP)))
     wait_var = tk.StringVar(value=str(mc.get("hover_wait", HOVER_WAIT)))
-    for text, var in (("между шагами, с", gap_var), ("после наведения, с", wait_var)):
+    # Иван, 10.10: игра под нагрузкой откликается на пробел дольше 20 с — сколько ждать, настраивается
+    reply_var = tk.StringVar(value=str(mc.get("space_wait", SPACE_WAIT)))
+    for text, var in (("между шагами, с", gap_var), ("после наведения, с", wait_var), ("ждать отклика на пробел, с", reply_var)):
         tk.Label(trow, text=text).pack(side="left", padx=(8, 2))
         tk.Entry(trow, textvariable=var, width=4).pack(side="left")
 
@@ -240,13 +242,16 @@ def loop(interval):
 
     def save_macro(*_):
         mc.update(real_mouse=real_var.get(), step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
-                  freeze_delay=secs(fdelay_var, 1.0), freeze_sat=secs(sat_var, FREEZE_SAT))
+                  freeze_delay=secs(fdelay_var, 1.0), freeze_sat=secs(sat_var, FREEZE_SAT),
+                  space_wait=secs(reply_var, SPACE_WAIT))
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
-    for v in (real_var, gap_var, wait_var, fdelay_var, sat_var):
+        policy.wait = secs(reply_var, SPACE_WAIT)
+    for v in (real_var, gap_var, wait_var, fdelay_var, sat_var, reply_var):
         v.trace_add("write", save_macro)
     # START_BLOCK_CHAIN_WIRING
     # политика паузы — единственная, кто жмёт пробел; цепочка — свои шаги, пробелы через политику
-    policy = PausePolicy.for_window(hwnd, log=lambda m: print(time.strftime("%H%M%S"), "ПАУЗА", m, flush=True))
+    policy = PausePolicy.for_window(hwnd, wait=secs(reply_var, SPACE_WAIT),
+                                    log=lambda m: print(time.strftime("%H%M%S"), "ПАУЗА", m, flush=True))
 
     def mlog(text):
         print(time.strftime("%H%M%S"), "ЦЕПОЧКА", text, f"[игра: {st.get('state')}]", flush=True)
@@ -541,7 +546,9 @@ def loop(interval):
                 st["last"] = key
         st["pend"] = (stamp, s, gray)
         game = {"run": "идёт", "pause": "пауза"}.get(st.get("state"), "не вижу кнопок")
-        lines = [f"Игра: {game}"]
+        st["dt"] = 0.9 * st.get("dt", interval) + 0.1 * (t - st.get("t_prev", t - interval))  # сглаженный шаг кадра
+        st["t_prev"] = t
+        lines = [f"Игра: {game} | кадр раз в {st['dt']:.1f} с" + ("  — ИГРА ТОРМОЗИТ" if st["dt"] > 1 else "")]
         lines += [f"{names.get(k, k).capitalize()} индикатор: плюсов {st.get(f'plus_{k}', 0)}, "
                   f"рамка {'есть' if st.get(f'full_{k}') else 'нет'}" for k in icons]
         lines.append(f"Светлое с: {'—' if top is None else top} (порог строки {'—' if wy is None else wy})")
