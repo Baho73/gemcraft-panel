@@ -415,10 +415,13 @@ def loop(interval):
         цепочка) — пишем её и продолжаем со следующего кадра."""
         try:
             step_inner()
-        except Exception:
+        except Exception as e:
             import traceback
             err = traceback.format_exc()
-            print(time.strftime("%H%M%S"), "ОШИБКА в кадре, опрос продолжается:\n" + err, flush=True)
+            if isinstance(e, MemoryError):  # Windows исчерпала память (14.10: WSL и др.) — не баг пульта, кадр пропущен
+                print(time.strftime("%H%M%S"), "Windows не хватило памяти, кадр пропущен", flush=True)
+            else:
+                print(time.strftime("%H%M%S"), "ОШИБКА в кадре, опрос продолжается:\n" + err, flush=True)
             with open(HERE / "digit_errors.log", "a", encoding="utf-8") as f:
                 f.write(time.strftime("%Y-%m-%d %H:%M:%S") + "\n" + err + "\n")
             status.set("ошибка в кадре (см. digit_errors.log), опрос продолжается")
