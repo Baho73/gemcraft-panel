@@ -95,7 +95,9 @@ class Chain:
             elif state is None:  # кнопок скорости не видно — вслепую не жмём: пробел переключает паузу
                 self.stop("не вижу кнопок скорости в углу игры")
                 return
-            elif self.policy.busy():  # пробел в пути, игра в фоне откликается секунды — ждём
+            elif self.policy.busy() or (self.tries and self.policy.clock() - self.policy.sent_at < self.policy.wait):
+                # пробел в пути, игра в фоне откликается секунды — ждём. Второе условие: 15.10 ожидание снял один
+                # кадр «pause», а следующий снова «run» — цепочка сдалась через 1 с; ждём нужного состояния весь срок
                 nxt = 0.2
             elif self.tries >= 1:  # один пробел и ждём; повтор мог бы снять только что поставленную паузу
                 self.stop(f"игра не {'встала на паузу' if want == 'pause' else 'пошла'} после пробела")
@@ -157,6 +159,7 @@ def self_check():
     class Policy:
         def __init__(self):
             self.spaces, self.chain, self.hold = [], False, False
+            self.clock, self.sent_at, self.wait = lambda: now[0], 0.0, 20
 
         def busy(self):
             return False
@@ -170,9 +173,11 @@ def self_check():
 
         def chain_space(self, want):
             self.spaces.append(want)
+            self.sent_at = now[0]
 
     game = ["run"]
     queue = []
+    now = [0.0]
     pol = Policy()
     ch = Chain(0, pol, {n: [1, 1] for n in "ABCDE"}, lambda: {"real": True, "gap": 1, "wait": 1}, lambda: game[0],
                lambda ms, fn: queue.append(fn), lambda *a, **k: None, lambda *a: None)
@@ -201,4 +206,16 @@ def self_check():
     while queue and pol.spaces[-1] != "run":
         queue.pop(0)()
     assert pol.spaces == ["pause", "run"]  # игра уже стояла — пробел паузы не нужен
+    # 15.10: после пробела игра секунду ещё «run» — не сдаваться, ждать весь срок отклика, второй пробел не слать
+    pol, queue[:] = Policy(), []
+    ch = Chain(0, pol, {n: [1, 1] for n in "ABCDE"}, lambda: {"real": True, "gap": 1, "wait": 1}, lambda: game[0],
+               lambda ms, fn: queue.append(fn), lambda *a, **k: None, lambda *a: None)
+    game[0], now[0] = "run", 0.0
+    assert ch.start("тест")
+    now[0] = 1.0
+    queue.pop(0)()
+    assert ch.on and pol.spaces == ["pause"]
+    now[0] = 21.0
+    queue.pop(0)()
+    assert not ch.on and pol.spaces == ["pause"]
 # END_BLOCK_SELF_CHECK
