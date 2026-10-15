@@ -17,7 +17,7 @@ GEM = {"damage": "Урон от", "range": "Дальность", "mana value": "
 WAVE = {"hit points": "Здоровье", "armor level": "Броня", "speed": "Скорость", "mana gain per kill": "Мана за убийство",
         "banishment mana cost": "Мана за изгнание", "xp gain per kill": "Опыт за убийство"}
 SUM = {"Урон от", "Урон до", "Стоимость маны", "Цена улучшения", "Высасывает маны за выстрел", "Попадания", "Убийства",
-       "Выстрелов в секунду"}
+       "Выстрелов в секунду", "Количество"}
 
 
 def nums(s):
@@ -26,19 +26,41 @@ def nums(s):
 
 
 def label(line, known):
-    """Подпись до двоеточия -> известное поле (OCR путает буквы: «Raugc» = range)."""
-    if ":" not in line:
-        return None
-    m = difflib.get_close_matches(line.split(":")[0].strip().lower(), known, n=1, cutoff=0.5)
-    return m[0] if m else None
+    """Подпись -> известное поле (OCR путает буквы: «Raugc» = range). Сначала текст до двоеточия, потом до первого
+    числа: двоеточие OCR ставит и внутрь подписи («mc:nca vatuæ 1.042 E18» = mana value)."""
+    heads = [line.split(":")[0]] if ":" in line else []
+    heads.append(re.split(r"\d", line, 1)[0].replace(":", ""))
+    for h in heads:
+        if (m := difflib.get_close_matches(h.strip().lower(), known, n=1, cutoff=0.5)):
+            return m[0]
+    return None
+
+
+def value(line):
+    """Числа после подписи: после двоеточия, а без него — с первой цифры («gai2{ kill» — не число)."""
+    return nums(line.split(":", 1)[1] if ":" in line else line[re.search(r"\d", line).start():] if re.search(r"\d", line) else "")
+
+
+def glue(lines):
+    """OCR переносит число на свою строку («Armor IEVEI:» / «9.991 €73») — приклеить к подписи."""
+    out = []
+    for l in lines:
+        if out and re.fullmatch(r"[\d,.\s€eE+]+", l) and out[-1].rstrip().endswith(":"):
+            out[-1] += " " + l
+        else:
+            out.append(l)
+    return out
 
 
 def parse(lines):
+    lines = glue(lines)
     head = lines[0] if lines else ""
     if (m := re.match(r"Wave\s+(\d+)", head, re.I)):
-        row = {"Волна": int(m[1]), "Монстры": lines[1] if len(lines) > 1 else ""}
+        mob = re.match(r"\s*(\d[\d,]*)\s+(.*)", lines[1]) if len(lines) > 1 else None  # «999 Reavers»
+        row = {"Волна": int(m[1]), "Количество": int(mob[1].replace(",", "")) if mob else None,
+               "Монстры": mob[2] if mob else (lines[1] if len(lines) > 1 else "")}
         for l in lines[2:]:
-            k, v = label(l, WAVE), nums(l.split(":", 1)[-1])  # числа только после подписи: «gai2{ kill» — не число
+            k, v = label(l, WAVE), value(l)
             if k == "xp gain per kill" and "xp" not in l.lower():  # OCR потерял «Mana»: «gaiN per kill: 326»
                 k = "mana gain per kill"
             if k and v and WAVE[k] not in row:
@@ -47,7 +69,7 @@ def parse(lines):
     if re.search(r"grade\s+\d+", head, re.I):
         row = {"Уровень": nums(head)[0] if nums(head) else None, "Тип": lines[1] if len(lines) > 1 else ""}
         for l in lines[2:]:
-            low, v = l.lower(), nums(l.split(":", 1)[-1])
+            low, v = l.lower(), value(l)
             k = label(l, GEM)
             if k == "damage" and len(v) >= 2:
                 row["Урон от"], row["Урон до"] = v[0], v[1]
@@ -70,7 +92,7 @@ def parse(lines):
 
 ORDER = ["Клетка", "Уровень", "Тип", "Где", "Урон от", "Урон до", "Дальность", "Выстрелов в секунду",
          "Высасывает маны за выстрел", "Попадания", "Убийства", "Стоимость маны", "Цена улучшения",
-         "Волна", "Монстры", *WAVE.values(), "Файл"]
+         "Волна", "Количество", "Монстры", *WAVE.values(), "Файл"]
 
 
 def write(ws, rows, first):
@@ -118,6 +140,11 @@ def self_check():
     _, _, r10 = parse(["Wave 10 of 67", "999 Reavers", "gaiN per kill: 326", "XP gaiN per kill: 3,077.6"])
     assert r10["Мана за убийство"] == 326 and r10["Опыт за убийство"] == 3077.6
     assert r["Мана за изгнание"] == 588 and r["Опыт за убийство"] == 4396.6 and r["Скорость"] == 0.33
+    assert r["Количество"] == 999 and r["Монстры"] == "Giamts"
+    _, _, r = parse(["Wave 26 of 67", "999 Marked RECVErs", "Hit poixts: 1.2E36", "Armor IEVEI:", "9.991 €73"])
+    assert r["Здоровье"] == 1.2e36 and isclose(r["Броня"], 9.991e73)  # число на своей строке
+    _, _, g = parse(["Grade 49 Gem", "x", "mc:nca vatuæ 1.042 E18"])
+    assert g["Стоимость маны"] == 1.042e18  # двоеточие внутри подписи
 
 
 if __name__ == "__main__":
