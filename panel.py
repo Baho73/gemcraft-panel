@@ -137,7 +137,13 @@ def loop(interval):
     def limit():
         """Порог из поля: «1.5e39», «1,000,000»; не число — None (подсказка рядом с полем)."""
         txt = limit_var.get().strip()
-        v = number(txt) if txt else None
+        # человек пишет как угодно: 1.2E36, 1,2e36, 1 000 000, 1,000,000; number() — только для формата игры d.ddd
+        t = txt.replace(" ", "").lower()
+        t = t.replace(",", ".") if "e" in t else t.replace(",", "")
+        try:
+            v = float(t) if t else None
+        except ValueError:
+            v = number(txt) if txt else None
         limit_hint.config(text=f"= {mana_text(v)}" if v else ("не число" if txt else ""))
         return v
 
