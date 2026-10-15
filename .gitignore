@@ -24,3 +24,5 @@ __pycache__/
 .claude/
 -=todo=-.md
 -=letter=-.txt
+tooltips/
+tooltips.xlsx

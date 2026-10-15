@@ -247,6 +247,14 @@ def loop(interval):
         cfg["tooltips"] = tips_var.get()
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
     tk.Checkbutton(trow, text="записывать подсказки", variable=tips_var, command=save_tips).pack(side="left")
+    tips_lamp = tk.Label(trow, text=" захват ", fg="white", bg="gray", font=("Segoe UI", 9, "bold"))
+    tips_lamp.pack(side="left", padx=4)
+
+    def lamp():
+        """Зелёный — подсказка под мышью записана; розовый — жду подсказку; серый — запись выключена."""
+        bg = "gray" if not tips_var.get() else "#2e9e44" if tips.last else "#e88aa8"
+        if tips_lamp["bg"] != bg:
+            tips_lamp.config(bg=bg)
 
     def keep_clear():
         """С экрана снимается то, что видно: пульт не должен лежать на игре — отодвигаем его левее (или правее)."""
@@ -448,6 +456,7 @@ def loop(interval):
             return
         if tips_var.get() and (name := tips.feed(hwnd, full)):
             print(stamp, "подсказка записана:", name)
+        lamp()
         mp = cv2.resize(cv2.cvtColor(full[50:600, 40:960], cv2.COLOR_BGR2GRAY), (184, 110),
                         interpolation=cv2.INTER_AREA).astype(np.int16)  # карта уменьшенно: движется ли игра
         if st["map"] is not None:
