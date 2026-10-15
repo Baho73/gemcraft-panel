@@ -29,6 +29,7 @@ from chain import Chain
 from detectors import FIELD, FREEZE_SAT, filled, freeze_level, game_state, icon_full, light_top, pluses, swirls, wave_blocks
 from mana_ocr import load, load_grad, mana_text, number, read, recent, steady, surge
 from pause_policy import SPACE_WAIT, PausePolicy
+from tooltip_grab import TooltipGrab
 
 HERE = Path(__file__).parent
 CFG = HERE / "digit_grab.json"
@@ -239,6 +240,13 @@ def loop(interval):
         cfg["screen_grab"] = screen_var.get()
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
     tk.Checkbutton(trow, text="снимать с экрана", variable=screen_var, command=save_screen).pack(side="left")
+    # Иван, 15.10: подсказки под мышью — в tooltips/, разбор отдельно (tooltip_table.py)
+    tips_var, tips = tk.BooleanVar(value=cfg.get("tooltips", True)), TooltipGrab()
+
+    def save_tips():
+        cfg["tooltips"] = tips_var.get()
+        CFG.write_text(json.dumps(cfg), encoding="utf-8")
+    tk.Checkbutton(trow, text="записывать подсказки", variable=tips_var, command=save_tips).pack(side="left")
 
     def keep_clear():
         """С экрана снимается то, что видно: пульт не должен лежать на игре — отодвигаем его левее (или правее)."""
@@ -438,6 +446,8 @@ def loop(interval):
             status.set(f"нет снимка окна: {e}")
             root.after(1000, step)
             return
+        if tips_var.get() and (name := tips.feed(hwnd, full)):
+            print(stamp, "подсказка записана:", name)
         mp = cv2.resize(cv2.cvtColor(full[50:600, 40:960], cv2.COLOR_BGR2GRAY), (184, 110),
                         interpolation=cv2.INTER_AREA).astype(np.int16)  # карта уменьшенно: движется ли игра
         if st["map"] is not None:
