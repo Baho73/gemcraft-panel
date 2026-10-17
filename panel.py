@@ -552,11 +552,11 @@ def loop(interval):
                 f.write(f"{stamp}\t{desc}\n")
         top = light_top(full)  # где сверху начинается светлый блок волны
         wave_now.set(f"светлое с: {top if top is not None else '—'}")
-        if top != st.get("wave_top"):  # разбор: каждое изменение — в журнал
-            st["wave_top"] = top
-            with open(HERE / "waves" / "top.tsv", "a", encoding="utf-8") as f:
-                f.write(f"{stamp}\t{top}\n")
         wy = wave_y()
+        if (top, wy) != (st.get("wave_top"), st.get("wave_wy")):  # разбор: каждое изменение уровня или порога — в журнал
+            st["wave_top"], st["wave_wy"] = top, wy
+            with open(HERE / "waves" / "top.tsv", "a", encoding="utf-8") as f:
+                f.write(f"{stamp}\t{top}\t{wy}\n")
         if wave_ev(top is not None and wy is not None and top <= wy) and checks["wave"].get():
             cv2.imwrite(str(HERE / "waves" / f"{stamp}_pause_{top}.png"), full[0:612, 0:60])
             event(stamp, t, f"светлая волна выше строки {wy} (с {top})", "wave", top)
