@@ -207,8 +207,8 @@ def loop(interval):
     tk.Label(crow, text="с").pack(side="left")
     freeze_now = tk.StringVar(value="")
     tk.Label(crow, textvariable=freeze_now, fg="gray30").pack(side="left", padx=6)
-    tk.Label(crow, text="порог (ниже — есть)").pack(side="left")
-    sat_var = tk.StringVar(value=str(mc.get("freeze_sat", FREEZE_SAT)))  # Иван: порог заморозки настраивается
+    tk.Label(crow, text="порог % (выше — есть)").pack(side="left")
+    sat_var = tk.StringVar(value=str(mc.get("freeze_pct", FREEZE_SAT)))  # Иван: порог заморозки настраивается
     tk.Entry(crow, textvariable=sat_var, width=4).pack(side="left")
     prow = tk.Frame(root)
     prow.pack(fill="x", padx=8)
@@ -289,7 +289,7 @@ def loop(interval):
 
     def save_macro(*_):
         mc.update(real_mouse=real_var.get(), step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
-                  freeze_delay=secs(fdelay_var, 1.0), freeze_sat=secs(sat_var, FREEZE_SAT),
+                  freeze_delay=secs(fdelay_var, 1.0), freeze_pct=secs(sat_var, FREEZE_SAT),
                   space_wait=secs(reply_var, SPACE_WAIT))
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
         policy.wait = secs(reply_var, SPACE_WAIT)
@@ -493,8 +493,8 @@ def loop(interval):
             plus_new = plus_ev[k](np_ >= 1)
             if plus_new and checks[f"{k}_plus"].get():
                 fl = freeze_level(full, mc["points"].get("A")) if k == "left" else None
-                if fl is not None and fl < secs(sat_var, FREEZE_SAT):  # Иван: заморозка лежит — плюс левого не повод для паузы
-                    mlog(f"левый: первый плюс, но заморозка есть ({fl:.0f}) — без паузы")
+                if fl is not None and fl >= secs(sat_var, FREEZE_SAT):  # Иван: заморозка лежит — плюс левого не повод для паузы
+                    mlog(f"левый: первый плюс, но заморозка есть ({fl:.2f}%) — без паузы")
                 elif (k == "left" and checks["macro"].get() and st.get("state") == "run" and not policy.hold
                       and t - st["start"] >= 1.0):  # первую секунду — плюс уже был на экране, не событие
                     # плюс левого без заморозки — сразу цепочка: её первый шаг и есть пауза (Иван, 8.10: «не встала
@@ -503,10 +503,10 @@ def loop(interval):
                         event(stamp, t, f"{names.get(k, k)} индикатор: первый плюс", "indicator", k, "plus")
                 else:
                     event(stamp, t, f"{names.get(k, k)} индикатор: первый плюс", "indicator", k, "plus")
-        frz = freeze_level(full, mc["points"].get("A"))  # насыщенность в круге вокруг A: ~94 заморозка, ~155 нет
+        frz = freeze_level(full, mc["points"].get("A"))  # доля поля цвета заморозки, %: ~0.02 нет, 1.3-2.5 есть
         if frz is not None:
-            frozen = frz < secs(sat_var, FREEZE_SAT)
-            freeze_now.set(f"заморозка: {'есть' if frozen else 'нет'}, тон {frz:.0f}")
+            frozen = frz >= secs(sat_var, FREEZE_SAT)
+            freeze_now.set(f"заморозка: {'есть' if frozen else 'нет'}, доля {frz:.2f}%")
             # не по моменту «кончилась», а по состоянию «нет уже N с»: иначе после запуска окна без заморозки
             # цепочка ждала бы конца заморозки, которой без цепочки не будет
             if frozen or st.get("state") != "run":
@@ -517,7 +517,7 @@ def loop(interval):
             since, delay = st.get("nofreeze_since"), secs(fdelay_var, 1.0)
             # почему цепочка не стартует — первой же причиной, в окно и (при смене) в журнал
             why = ("идёт" if chain.on else "галочка выключена" if not checks["macro"].get()
-                   else "пульт на стопе" if policy.hold else f"заморозка есть (тон {frz:.0f})" if frozen
+                   else "пульт на стопе" if policy.hold else f"заморозка есть (доля {frz:.2f}%)" if frozen
                    else f"игра не идёт ({st.get('state')})" if st.get("state") != "run"
                    else f"ход без заморозки {t - since:.0f} из {delay:g} с" if t - since < delay
                    else "нет плюса у левого" if not lp else "жду отклика на пробел" if policy.busy() else "")
@@ -608,7 +608,7 @@ def loop(interval):
                   f"рамка {'есть' if st.get(f'full_{k}') else 'нет'}" for k in icons]
         lines.append(f"Светлое с: {'—' if top is None else top} (порог строки {'—' if wy is None else wy})")
         lim_sat = secs(sat_var, FREEZE_SAT)
-        lines.append(f"Заморозка: {'есть' if frz < lim_sat else 'нет'}, тон {frz:.0f} (порог {lim_sat:g})"
+        lines.append(f"Заморозка: {'есть' if frz >= lim_sat else 'нет'}, доля {frz:.2f}% (порог {lim_sat:g})"
                      if frz is not None else "Заморозка: точка A не задана")
         lines.append(f"Водоворотов в рамке: {len(found)}")
         lines.append(f"Цепочка: {'идёт' if chain.on else 'ждёт — ' + st.get('chain_why', '?')}, "

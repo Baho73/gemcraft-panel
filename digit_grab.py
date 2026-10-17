@@ -97,6 +97,10 @@ def test():
     assert number("8,871e12") == 8.871e12 and number("8.86?4e12") is None and number("8.8?1e12") is None
     assert number("15.732e26") == 5.732e26 and number("9.5501e12") == 9.55e12 and number("9.5?6e12") is None and number("9.5?61e12") is None
     assert number("92,447") == 92447 and number("21.365") == 21365 and number("9.550e12") == 9.55e12 and number("1.2?") is None
+    # заморозка: доля поля цвета заморозки, порог FREEZE_SAT (17.10: жёлтое поле прятало её от старой меры)
+    from detectors import FREEZE_SAT, freeze_level
+    assert freeze_level(cv2.imread(str(HERE / "assets" / "freeze_no.png"))) < FREEZE_SAT
+    assert freeze_level(cv2.imread(str(HERE / "assets" / "freeze_yes.png"))) > FREEZE_SAT
     print("ok")
 
 
