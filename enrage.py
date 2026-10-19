@@ -24,16 +24,32 @@ YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
 
 
-def wave_info(h, x, y):
-    """Навести на блок волны и разобрать подсказку: (номер волны, {Здоровье, Мана за убийство, ...}) или (None, None)."""
+def _tip(h, x, y):
     capture.hover(h, *EMPTY)
     time.sleep(0.25)
     capture.hover(h, x, y)
     time.sleep(0.6)
     full = capture.grab(h, color=True)
-    b = tooltip_box(full)
+    return full, tooltip_box(full)
+
+
+def dot():
+    """Клавиша «.» — в игре включает/выключает подсказки (Иван, 19.10). Игра должна быть активной."""
+    ctypes.windll.user32.keybd_event(0xBE, 0x34, 0, 0)
+    ctypes.windll.user32.keybd_event(0xBE, 0x34, 2, 0)
+    time.sleep(0.3)
+
+
+def wave_info(h, x, y):
+    """Навести на блок волны и разобрать подсказку: (номер волны, {Здоровье, Бомб, ...}) или (None, None).
+    Подсказки нет — нажать «.» (подсказки могли выключить) и проверить снова; не помогло — «.» назад."""
+    full, b = _tip(h, x, y)
     if not b:
-        return None, None
+        dot()
+        full, b = _tip(h, x, y)
+        if not b:
+            dot()
+            return None, None
     bx, by, bw, bh = b
     lines = ocr(full[by:by + bh, bx:bx + bw])
     t, k, row = parse(lines)
@@ -43,6 +59,18 @@ def wave_info(h, x, y):
     m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
     return k, row
+
+
+def focus(h):
+    """Сделать игру активной: подсказки по наведению сообщением игра показывает только активной (19.10).
+    Windows не всегда отдаёт фокус фоновому процессу — нажатие Alt это разрешает."""
+    try:
+        win32gui.SetForegroundWindow(h)
+    except Exception:
+        ctypes.windll.user32.keybd_event(0x12, 0x38, 0, 0)  # Alt
+        ctypes.windll.user32.keybd_event(0x12, 0x38, 2, 0)
+        win32gui.SetForegroundWindow(h)
+    time.sleep(0.2)
 
 
 def bomb_on(full):
@@ -75,12 +103,7 @@ def throw(h, points):
     kb = u.keybd_event
     was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
     capture.real_hover(h, *EMPTY)
-    try:
-        win32gui.SetForegroundWindow(h)
-    except Exception:  # Windows иногда не даёт фокус — пробуем щелчком по пустому месту
-        capture.real_click(h, *EMPTY)
-        u.SetCursorPos(*win32gui.ClientToScreen(h, EMPTY))
-    time.sleep(0.2)
+    focus(h)
     if not set_bomb(h, True):
         raise RuntimeError("режим бомбы не включился")
     kb(0x10, 0x2A, 0, 0)  # Shift вниз
@@ -114,6 +137,19 @@ def enrage_all():
     """Длинным волнам на экране — добросить до BOMBS бомб; брошенное читается из подсказки («N gem bombs dropped»).
     Все щелчки — одним зажатием Shift (Иван: шифтом бросаем во все волны)."""
     h = capture.find_window(json.load(open(HERE / "digit_grab.json", encoding="utf-8"))["title"])
+    was_fg = win32gui.GetForegroundWindow()
+    try:
+        focus(h)
+        _enrage(h)
+    finally:
+        if was_fg and was_fg != h:
+            try:
+                win32gui.SetForegroundWindow(was_fg)
+            except Exception:
+                pass
+
+
+def _enrage(h):
     plan = []
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
         if kind != "длинный":
