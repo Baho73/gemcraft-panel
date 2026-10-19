@@ -264,7 +264,11 @@ def _enrage(h, gems):
             if row["Бомб"] == 0:
                 small.append((k, x, y, 1))
             continue
-        n = -(-(BOMBS - row["Бомб"]) // PER)  # бросков осталось, вверх
+        b = row["Бомб"]
+        if 0 < b < BOMBS:  # OCR бывает теряет цифру (1488 -> «140») — перечитать, взять большее
+            _, again = wave_info(h, x, y)
+            b = max(b, (again or {}).get("Бомб", 0))
+        n = round((BOMBS - b) / PER)  # бросков осталось; недобор меньше полброска (1488 = 6 по 248) — готово
         if n > 0:
             plan.append((k, x, y, n))
     capture.hover(h, *EMPTY)
