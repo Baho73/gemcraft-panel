@@ -14,9 +14,12 @@ def tooltip_box(img):
     """Самый большой почти чёрный прямоугольник кадра: (x, y, w, h) или None."""
     # фон подсказки — ровный 0; тёмные места поля 10-40, порог 12 склеивал рамку со всем кадром
     dark = (cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) <= 3).astype(np.uint8) * 255
+    # чёрные места поля касались подсказки и склеивались с ней в рамку на весь кадр (волна 47, 19.10):
+    # размыкание рвёт тонкие перемычки, а подсказка — почти сплошной прямоугольник (заполнен 0.98, поле 0.3-0.45)
+    dark = cv2.morphologyEx(dark, cv2.MORPH_OPEN, np.ones((7, 7), np.uint8))
     cs, _ = cv2.findContours(dark, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    boxes = [cv2.boundingRect(c) for c in cs]
-    boxes = [b for b in boxes if b[2] > 150 and b[3] > 60]
+    boxes = [(cv2.boundingRect(c), cv2.contourArea(c)) for c in cs]
+    boxes = [b for b, a in boxes if b[2] > 150 and b[3] > 60 and a > 0.9 * b[2] * b[3]]
     return max(boxes, key=lambda b: b[2] * b[3], default=None)
 
 
