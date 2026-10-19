@@ -166,13 +166,21 @@ def take(h, src):
     ys, xs = diff.nonzero()
     if len(xs) < 50:
         raise RuntimeError("камень с поля в инвентарь не лёг (Tab)")
-    return INV[0] + int(xs.mean()), INV[1] + int(ys.mean())
+    return (INV[0] + int(xs.mean()), INV[1] + int(ys.mean())), before
 
 
-def put_back(h, slot, src):
-    """Камень из инвентаря назад: взять щелчком и щёлкнуть по пустому месту, где он лежал (Иван, 20.10)."""
-    click(h, slot)
-    click(h, src)
+def put_back(h, slot, src, empty):
+    """Камень из инвентаря назад: взять щелчком и щёлкнуть по пустому месту, где он лежал (Иван, 20.10).
+    Проверка: ячейка снова как до Tab (empty — снимок инвентаря тогда); нет — ещё раз, потом ошибка."""
+    x, y = slot[0] - INV[0], slot[1] - INV[1]
+    for _ in range(2):
+        click(h, slot)
+        click(h, src)
+        capture.real_hover(h, *EMPTY)
+        time.sleep(0.3)
+        if cv2.absdiff(empty[y - 8:y + 8, x - 8:x + 8], inv(h)[y - 8:y + 8, x - 8:x + 8]).mean() < 10:
+            return
+    raise RuntimeError(f"камень не вернулся на поле — лежит в инвентаре {slot}")
 
 
 def drag(h, a, b):
@@ -260,13 +268,13 @@ def _enrage(h, gems):
         slot = None
         if "1" in gems:  # камень 1 лежит на поле — на время бросков в инвентарь
             focus(h)
-            slot = take(h, gems["1"])
+            slot, empty = take(h, gems["1"])
         try:
             throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
             if slot:
                 focus(h)
-                put_back(h, slot, gems["1"])
+                put_back(h, slot, gems["1"], empty)
     if small and "61" not in gems:
         print("маленькие волны", [k for k, *_ in small], "— не задано место камня 61, пропуск")
         small = []
