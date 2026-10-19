@@ -30,6 +30,7 @@ from detectors import FIELD, FREEZE_SAT, filled, freeze_level, game_state, icon_
 from mana_ocr import load, load_grad, mana_text, number, read, recent, steady, surge
 from pause_policy import SPACE_WAIT, PausePolicy
 from tooltip_grab import TooltipGrab
+import enrage
 
 HERE = Path(__file__).parent
 CFG = HERE / "digit_grab.json"
@@ -173,6 +174,9 @@ def loop(interval):
             cfg["wave_y"] = wave_y()
             CFG.write_text(json.dumps(cfg), encoding="utf-8")
     wave_var.trace_add("write", save_wave)
+    checks["enrage"] = tk.BooleanVar(value=pause.get("enrage", False))  # Иван, 19.10: волны злю сам, его не останавливаю
+    tk.Checkbutton(wrow, text="злить её сам и идти дальше", variable=checks["enrage"],
+                   command=lambda: save_pause()).pack(side="left", padx=6)
     blocks_now = tk.StringVar(value="")
     tk.Label(root, textvariable=blocks_now, anchor="w", fg="gray30").pack(fill="x", padx=8)
     srow = tk.Frame(root)
@@ -559,7 +563,37 @@ def loop(interval):
                 f.write(f"{stamp}\t{top}\t{wy}\n")
         if wave_ev(top is not None and wy is not None and top <= wy) and checks["wave"].get():
             cv2.imwrite(str(HERE / "waves" / f"{stamp}_pause_{top}.png"), full[0:612, 0:60])
-            event(stamp, t, f"светлая волна выше строки {wy} (с {top})", "wave", top)
+            if (checks["enrage"].get() and not chain.on and not policy.hold and not policy.busy()
+                    and st.get("state") == "run" and t - st["start"] >= 1.0):
+                # своя пауза, как у цепочки: события на это время откладываются и дадут паузу после
+                policy.chain_begin()
+                policy.chain_space("pause")
+                st["enraging"] = t
+                print(stamp, f"ЗЛОСТЬ: светлая волна у строки {wy} (с {top}) — пауза, злю волны", flush=True)
+            else:
+                event(stamp, t, f"светлая волна выше строки {wy} (с {top})", "wave", top)
+        if st.get("enraging") and st.get("state") == "pause" and not policy.busy():
+            st["enraging"] = None
+            try:
+                enrage.enrage_all()  # ponytail: блокирует окно пульта на время бросков (~10-20 с)
+            except Exception as e:
+                print(stamp, "ЗЛОСТЬ: ошибка, игра оставлена на паузе:", e, flush=True)
+                policy.chain_end(paused=True)
+            else:
+                st["wave_top"] = light_top(grab(hwnd, None, color=True, screen=screen_var.get()))
+                why = blocker()
+                if why:
+                    print(stamp, f"ЗЛОСТЬ: готово, игра оставлена на паузе: {why}", flush=True)
+                    winsound.MessageBeep()
+                    policy.chain_end(paused=True)
+                else:
+                    print(stamp, "ЗЛОСТЬ: готово, снимаю паузу", flush=True)
+                    policy.chain_space("run")
+                    policy.chain_end()
+        elif st.get("enraging") and t - st["enraging"] > policy.wait + 5:
+            print(stamp, "ЗЛОСТЬ: игра не встала на паузу — отменено", flush=True)
+            st["enraging"] = None
+            policy.chain_end()
         x, y, w, h = cfg["roi"]
         bgr = full[y:y + h, x:x + w]
         gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
