@@ -4,6 +4,10 @@ import json
 import time
 from pathlib import Path
 
+import ctypes
+
+import win32gui
+
 import capture
 from detectors import wave_blocks
 from tooltip_ocr import ocr, tooltip_box
@@ -26,6 +30,26 @@ def wave_info(h, x, y):
     bx, by, bw, bh = b
     t, k, row = parse(ocr(full[by:by + bh, bx:bx + bw]))
     return (k, row) if t == "wave" else (None, None)
+
+
+def throw(h, points):
+    """B (режим бомбы), отпустить; затем с зажатым Shift щёлкнуть по каждой волне — летят копии камня,
+    сколько их — стоит на кнопке Throw Gem Bomb. Щелчок сообщением игра не принимает (19.10) — Shift и щелчок
+    настоящие, игра должна быть видна."""
+    kb = ctypes.windll.user32.keybd_event
+    capture.real_hover(h, *EMPTY)
+    win32gui.SetForegroundWindow(h)
+    time.sleep(0.2)
+    kb(0x42, 0x30, 0, 0)  # B
+    kb(0x42, 0x30, 2, 0)
+    time.sleep(0.3)
+    kb(0x10, 0x2A, 0, 0)  # Shift вниз
+    try:
+        for x, y in points:
+            capture.real_click(h, x, y)
+            time.sleep(0.3)
+    finally:
+        kb(0x10, 0x2A, 2, 0)  # Shift вверх — даже при ошибке, иначе залипнет
 
 
 def main():
