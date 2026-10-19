@@ -175,8 +175,8 @@ def loop(interval):
             CFG.write_text(json.dumps(cfg), encoding="utf-8")
     wave_var.trace_add("write", save_wave)
     checks["enrage"] = tk.BooleanVar(value=pause.get("enrage", False))  # Иван, 19.10: волны злю сам, его не останавливаю
-    tk.Checkbutton(wrow, text="злить её сам и идти дальше", variable=checks["enrage"],
-                   command=lambda: save_pause()).pack(side="left", padx=6)
+    tk.Checkbutton(root, text="Светлую волну злить самому и идти дальше (без паузы для Ивана)", variable=checks["enrage"],
+                   anchor="w", command=lambda: save_pause()).pack(fill="x", padx=8)
     blocks_now = tk.StringVar(value="")
     tk.Label(root, textvariable=blocks_now, anchor="w", fg="gray30").pack(fill="x", padx=8)
     srow = tk.Frame(root)
