@@ -57,7 +57,10 @@ def wave_info(h, x, y):
     if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
         k, row = lines[0], {"spark": True}
     elif t != "wave":
-        return None, None
+        m = re.search(r"(\d+) of \d+", lines[0] if lines else "")  # «Wave» бывает прочитано криво: «W CVE 77 of 262»
+        if not m:
+            return None, None
+        k, row = int(m.group(1)), {}
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
