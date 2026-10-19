@@ -175,8 +175,27 @@ def loop(interval):
             CFG.write_text(json.dumps(cfg), encoding="utf-8")
     wave_var.trace_add("write", save_wave)
     checks["enrage"] = tk.BooleanVar(value=pause.get("enrage", False))  # Иван, 19.10: волны злю сам, его не останавливаю
-    tk.Checkbutton(root, text="Светлую волну злить самому и идти дальше (без паузы для Ивана)", variable=checks["enrage"],
-                   anchor="w", command=lambda: save_pause()).pack(fill="x", padx=8)
+    erow = tk.Frame(root)
+    erow.pack(fill="x", padx=8)
+    tk.Checkbutton(erow, text="Светлую волну злить самому и идти дальше (без паузы для Ивана)", variable=checks["enrage"],
+                   command=lambda: save_pause()).pack(side="left")
+    gems = cfg.setdefault("gems", {})  # Иван, 20.10: где лежат камни-бомбы: 1 — в длинные волны, 61 — в маленькие
+    gbtn = {}
+
+    def gem_spot(name, left=3):
+        if left:
+            gbtn[name].config(text=f"камень {name}: {left}…")
+            root.after(1000, gem_spot, name, left - 1)
+            return
+        gems[name] = list(win32gui.ScreenToClient(hwnd, win32gui.GetCursorPos()))
+        CFG.write_text(json.dumps(cfg), encoding="utf-8")
+        gbtn[name].config(text=f"камень {name}: {gems[name][0]},{gems[name][1]}")
+
+    for name in ("1", "61"):
+        p = gems.get(name)
+        gbtn[name] = tk.Button(erow, text=f"камень {name}: {p[0]},{p[1]}" if p else f"камень {name}: задать",
+                               command=lambda n=name: gem_spot(n))
+        gbtn[name].pack(side="left", padx=2)
     blocks_now = tk.StringVar(value="")
     tk.Label(root, textvariable=blocks_now, anchor="w", fg="gray30").pack(fill="x", padx=8)
     srow = tk.Frame(root)
