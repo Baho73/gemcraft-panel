@@ -136,11 +136,27 @@ def wave_blocks(full):
                 y += 1
             lines.append((a, y))
         y += 1
-    edges = [(y0, y0)] + lines + [(y1, y1)]
     hsv = cv2.cvtColor(full[:, x0 + 2:x1 - 2], cv2.COLOR_BGR2HSV)
-    out = []
+    out, merged, raw = [], [], lines
+    for a, b in lines:  # светлая (почти белая) искра — пачка «разделителей» с узкими щелями: это блок, не линия (20.10)
+        if merged and a - merged[-1][1] < 8:
+            merged[-1][1] = b
+        else:
+            merged.append([a, b])
+    lines, whites = [], set()
+    med = np.median(g, axis=1)
+    for a, b in merged:
+        if b - a >= 15 and (med[a:b] > 150).mean() > 0.6:  # внутри почти всё светлое — блок; две линии рядом — нет
+            out.append((a, b, ((x0 + x1) // 2, (a + b) // 2), "маленький", True))
+            lines += [(a, a), (b, b)]
+            whites.add((a, b))
+        else:
+            lines += [l for l in raw if a <= l[0] <= b]
+    edges = [(y0, y0)] + lines + [(y1, y1)]
     for (a0, a1), (b0, b1) in zip(edges, edges[1:]):
         top, bot = a1, b0
+        if (top, bot) in whites:
+            continue
         if bot - top < 8:  # пустой или тонкий кусок (разделитель у самого края) — не блок; раньше тут падал np.convolve
             continue
         cut = a0 == y0 or b1 == y1
@@ -165,7 +181,7 @@ def wave_blocks(full):
         kind = "длинный" if h >= 95 else ("обрез" if cut else ("маленький" if h < 45 else "обрез"))
         light = float(np.median(hsv[top:bot, :, 1])) < 12
         out.append((top, bot, ((x0 + x1) // 2, (top + bot) // 2), kind, light))
-    return out
+    return sorted(out)
 
 
 def icon_full(icon):

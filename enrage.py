@@ -55,7 +55,7 @@ def wave_info(h, x, y):
     lines = ocr(full[by:by + bh, bx:bx + bw])
     t, k, row = parse(lines)
     if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
-        k, row = lines[0], {}
+        k, row = lines[0], {"spark": True}
     elif t != "wave":
         return None, None
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
@@ -248,15 +248,16 @@ def enrage_all():
 
 
 def _enrage(h, gems):
-    plan, small = [], []
+    plan, small, seen = [], [], set()
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
-        if kind not in ("длинный", "маленький"):
-            continue
-        k, row = wave_info(h, x, y)
+        k, row = wave_info(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
             print(y, "подсказка не прочиталась — пропуск")
             continue
-        if kind == "маленький":
+        if k in seen:
+            continue
+        seen.add(k)
+        if row.get("spark"):
             if row["Бомб"] == 0:
                 small.append((k, x, y, 1))
             continue
