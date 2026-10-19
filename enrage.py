@@ -54,9 +54,11 @@ def wave_info(h, x, y):
     bx, by, bw, bh = b
     lines = ocr(full[by:by + bh, bx:bx + bw])
     t, k, row = parse(lines)
-    if t != "wave":
+    if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
+        k, row = lines[0], {}
+    elif t != "wave":
         return None, None
-    dim = ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
+    dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
     return k, row
@@ -132,6 +134,45 @@ def throw(h, points):
                 win32gui.SetForegroundWindow(was_fg)
             except Exception:
                 pass
+
+
+INV = (980, 142, 1070, 484)  # сетка инвентаря: x0, y0, x1, y1
+
+
+def click(h, p):
+    """Настоящий щелчок по точке окна игры."""
+    u = ctypes.windll.user32
+    u.SetCursorPos(*win32gui.ClientToScreen(h, tuple(p)))
+    time.sleep(0.15)
+    u.mouse_event(0x0002, 0, 0, 0, 0)
+    u.mouse_event(0x0004, 0, 0, 0, 0)
+    time.sleep(0.3)
+
+
+def inv(h):
+    x0, y0, x1, y1 = INV
+    return capture.grab(h, color=True)[y0:y1, x0:x1]
+
+
+def take(h, src):
+    """Камень с поля в инвентарь: навести и Tab (Иван, 20.10). Возвращает точку, куда он лёг, — по разнице снимков."""
+    capture.real_hover(h, *src)
+    time.sleep(0.3)
+    before = inv(h)
+    ctypes.windll.user32.keybd_event(0x09, 0x0F, 0, 0)  # Tab
+    ctypes.windll.user32.keybd_event(0x09, 0x0F, 2, 0)
+    time.sleep(0.4)
+    diff = cv2.absdiff(before, inv(h)).max(axis=2) > 40
+    ys, xs = diff.nonzero()
+    if len(xs) < 50:
+        raise RuntimeError("камень с поля в инвентарь не лёг (Tab)")
+    return INV[0] + int(xs.mean()), INV[1] + int(ys.mean())
+
+
+def put_back(h, slot, src):
+    """Камень из инвентаря назад: взять щелчком и щёлкнуть по пустому месту, где он лежал (Иван, 20.10)."""
+    click(h, slot)
+    click(h, src)
 
 
 def drag(h, a, b):
@@ -216,7 +257,16 @@ def _enrage(h, gems):
             plan.append((k, x, y, n))
     capture.hover(h, *EMPTY)
     if plan:
-        throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+        slot = None
+        if "1" in gems:  # камень 1 лежит на поле — на время бросков в инвентарь
+            focus(h)
+            slot = take(h, gems["1"])
+        try:
+            throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+        finally:
+            if slot:
+                focus(h)
+                put_back(h, slot, gems["1"])
     if small and "61" not in gems:
         print("маленькие волны", [k for k, *_ in small], "— не задано место камня 61, пропуск")
         small = []
