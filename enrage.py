@@ -22,6 +22,7 @@ PAUSE = 1.0  # с между щелчками-бросками
 BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
+SLOT = (1052, 467)  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
 def _tip(h, x, y):
@@ -133,14 +134,62 @@ def throw(h, points):
                 pass
 
 
+def drag(h, a, b):
+    """Настоящее перетаскивание мышью из точки a в точку b окна игры."""
+    u = ctypes.windll.user32
+    (ax, ay), (bx, by) = (win32gui.ClientToScreen(h, p) for p in (a, b))
+    u.SetCursorPos(ax, ay)
+    time.sleep(0.15)
+    u.mouse_event(0x0002, 0, 0, 0, 0)
+    time.sleep(0.15)
+    for i in range(1, 9):
+        u.SetCursorPos(ax + (bx - ax) * i // 8, ay + (by - ay) * i // 8)
+        time.sleep(0.04)
+    time.sleep(0.15)
+    u.mouse_event(0x0004, 0, 0, 0, 0)
+    time.sleep(0.3)
+
+
+def throw_copy(h, src, points):
+    """Маленьким волнам — по одному камню (Иван, 20.10): навести на камень src, D — копия ложится в SLOT,
+    B, перетащить копию на волну. Оригинал остаётся на месте."""
+    was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
+    focus(h)
+    try:
+        for x, y in points:
+            set_bomb(h, False)
+            capture.real_hover(h, *src)
+            time.sleep(0.3)
+            sx, sy = SLOT
+            before = capture.grab(h, color=True)[sy - 10:sy + 10, sx - 10:sx + 10]
+            ctypes.windll.user32.keybd_event(0x44, 0x20, 0, 0)  # D
+            ctypes.windll.user32.keybd_event(0x44, 0x20, 2, 0)
+            time.sleep(0.4)
+            after = capture.grab(h, color=True)[sy - 10:sy + 10, sx - 10:sx + 10]
+            if cv2.absdiff(before, after).mean() < 10:
+                raise RuntimeError("копия камня не появилась в правой нижней ячейке")
+            if not set_bomb(h, True):
+                raise RuntimeError("режим бомбы не включился")
+            drag(h, SLOT, (x, y))
+    finally:
+        set_bomb(h, False)
+        ctypes.windll.user32.SetCursorPos(*was_pos)
+        if was_fg and was_fg != h:
+            try:
+                win32gui.SetForegroundWindow(was_fg)
+            except Exception:
+                pass
+
+
 def enrage_all():
     """Длинным волнам на экране — добросить до BOMBS бомб; брошенное читается из подсказки («N gem bombs dropped»).
     Все щелчки — одним зажатием Shift (Иван: шифтом бросаем во все волны)."""
-    h = capture.find_window(json.load(open(HERE / "digit_grab.json", encoding="utf-8"))["title"])
+    cfg = json.load(open(HERE / "digit_grab.json", encoding="utf-8"))
+    h = capture.find_window(cfg["title"])
     was_fg = win32gui.GetForegroundWindow()
     try:
         focus(h)
-        _enrage(h)
+        _enrage(h, cfg.get("gems", {}))
     finally:
         if was_fg and was_fg != h:
             try:
@@ -149,24 +198,32 @@ def enrage_all():
                 pass
 
 
-def _enrage(h):
-    plan = []
+def _enrage(h, gems):
+    plan, small = [], []
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
-        if kind != "длинный":
+        if kind not in ("длинный", "маленький"):
             continue
         k, row = wave_info(h, x, y)
         if not row:
             print(y, "подсказка не прочиталась — пропуск")
             continue
+        if kind == "маленький":
+            if row["Бомб"] == 0:
+                small.append((k, x, y, 1))
+            continue
         n = -(-(BOMBS - row["Бомб"]) // PER)  # бросков осталось, вверх
         if n > 0:
             plan.append((k, x, y, n))
     capture.hover(h, *EMPTY)
-    if not plan:
-        return
-    throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+    if plan:
+        throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+    if small and "61" not in gems:
+        print("маленькие волны", [k for k, *_ in small], "— не задано место камня 61, пропуск")
+        small = []
+    if small:
+        throw_copy(h, gems["61"], [(x, y) for k, x, y, n in small])
     time.sleep(0.5)
-    for k, x, y, n in plan:
+    for k, x, y, n in plan + small:
         _, row = wave_info(h, x, y)
         print(f"волна {k} +{n} бросков, бомб:", row and row["Бомб"], flush=True)
     capture.hover(h, *EMPTY)
