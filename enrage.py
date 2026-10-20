@@ -250,14 +250,26 @@ def enrage_all():
                 pass
 
 
+def sure(h, x, y, tries=5):
+    """Прочитать подсказку блока, пока два чтения не совпадут по номеру волны и числу бомб.
+    Одно чтение врёт: 1476 бывало прочитано меньшим числом — лишний бросок в 128; пустое — пропуск 130 (20.10).
+    Не совпали за tries чтений — (None, None): волну не трогать."""
+    reads = []
+    for _ in range(tries):
+        k, row = wave_info(h, x, y)
+        if row:
+            key = (k, row["Бомб"])
+            if key in reads:
+                return k, row
+            reads.append(key)
+    print(y, "чтения не совпали:", reads, flush=True)
+    return None, None
+
+
 def _enrage(h, gems):
     plan, small, seen = [], [], set()
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
-        k, row = wave_info(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
-        for _ in range(2):  # подсказка не прочиталась — ещё раз: так пропущена волна 130 (20.10)
-            if row:
-                break
-            k, row = wave_info(h, x, y)
+        k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
             print(y, "подсказка не прочиталась — пропуск")
             continue
@@ -269,9 +281,6 @@ def _enrage(h, gems):
                 small.append((k, x, y, 1))
             continue
         b = row["Бомб"]
-        if 0 < b < BOMBS:  # OCR бывает теряет цифру (1488 -> «140») — перечитать, взять большее
-            _, again = wave_info(h, x, y)
-            b = max(b, (again or {}).get("Бомб", 0))
         n = round((BOMBS - b) / PER)  # бросков осталось; недобор меньше полброска (1488 = 6 по 248) — готово
         if n > 0:
             plan.append((k, x, y, n))
