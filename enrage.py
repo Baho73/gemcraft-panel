@@ -68,6 +68,9 @@ def wave_info(h, x, y):
         k, row = int(m.group(1)), {}
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
+    # чистая волна — короткая подсказка (12 строк, высота 257), злая — с «Rage modifiers» (26 строк, 417)
+    if not m and (bh > 320 or any("modifiers" in s.lower() or "dropped" in s.lower() for s in lines + dim)):
+        return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
     return k, row
 
@@ -255,6 +258,14 @@ def enrage_all():
                 pass
 
 
+MAXN = 6  # бросков в одну волну за всё время (Иван, 20.10: в 143 накидано сверх меры)
+THROWN_FILE = HERE / "waves" / "thrown.json"
+try:
+    THROWN = json.load(open(THROWN_FILE, encoding="utf-8"))
+except Exception:
+    THROWN = {}
+
+
 def sure(h, x, y, tries=5):
     """Прочитать подсказку блока, пока два чтения не совпадут по номеру волны и числу бомб.
     Одно чтение врёт: 1476 бывало прочитано меньшим числом — лишний бросок в 128; пустое — пропуск 130 (20.10).
@@ -286,7 +297,7 @@ def _enrage(h, gems):
                 small.append((k, x, y, 1))
             continue
         b = row["Бомб"]
-        n = round((BOMBS - b) / PER)  # бросков осталось; недобор меньше полброска (1488 = 6 по 248) — готово
+        n = min(round((BOMBS - b) / PER), MAXN - THROWN.get(str(k), 0))  # больше MAXN за всё время — никогда
         if n > 0:
             plan.append((k, x, y, n))
     capture.hover(h, *EMPTY)
@@ -296,6 +307,9 @@ def _enrage(h, gems):
             focus(h)
             slot, empty = take(h, gems["1"])
         try:
+            for k, x, y, n in plan:  # учёт до броска: сорвётся посреди — лишнего всё равно не будет
+                THROWN[str(k)] = THROWN.get(str(k), 0) + n
+            json.dump(THROWN, open(THROWN_FILE, "w", encoding="utf-8"))
             throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
             if slot:
