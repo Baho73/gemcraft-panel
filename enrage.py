@@ -254,6 +254,10 @@ def _enrage(h, gems):
     plan, small, seen = [], [], set()
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
         k, row = wave_info(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
+        for _ in range(2):  # подсказка не прочиталась — ещё раз: так пропущена волна 130 (20.10)
+            if row:
+                break
+            k, row = wave_info(h, x, y)
         if not row:
             print(y, "подсказка не прочиталась — пропуск")
             continue
