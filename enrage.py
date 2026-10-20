@@ -58,6 +58,11 @@ def wave_info(h, x, y):
         k, row = lines[0], {"spark": True}
     elif t != "wave":
         m = re.search(r"(\d+) of \d+", lines[0] if lines else "")  # «Wave» бывает прочитано криво: «W CVE 77 of 262»
+        for sc in (4, 2):  # номер бывает потерян целиком: «Wave of 262» на масштабе 3, на 4 и 2 читается (волна 130, 20.10)
+            if m:
+                break
+            alt = ocr(full[by:by + bh, bx:bx + bw], scale=sc)
+            m = re.search(r"(\d+) of \d+", alt[0] if alt else "")
         if not m:
             return None, None
         k, row = int(m.group(1)), {}
