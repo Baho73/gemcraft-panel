@@ -165,8 +165,28 @@ def inv(h):
     return capture.grab(h, color=True)[y0:y1, x0:x1]
 
 
+def grade(h, p):
+    """Уровень камня под точкой p по подсказке «Grade N Gem»; не прочитан — None."""
+    for _ in range(3):
+        full, b = _tip(h, *p)
+        if b:
+            bx, by, bw, bh = b
+            m = re.search(r"Grade (\d+) Gem", " ".join(ocr(full[by:by + bh, bx:bx + bw])), re.I)  # OCR: «GradE 61 GEM»
+            if m:
+                return int(m.group(1))
+    return None
+
+
+def must_grade(h, p, want):
+    """Бросать только тем камнем, что задан: в точке камня 1 оказался камень 68 — им закидало волны (20.10)."""
+    g = grade(h, p)
+    if g != want:
+        raise RuntimeError(f"в точке {list(p)} камень уровня {g}, нужен {want} — не бросаю; задай место кнопкой «камень {want}»")
+
+
 def take(h, src):
     """Камень с поля в инвентарь: навести и Tab (Иван, 20.10). Возвращает точку, куда он лёг, — по разнице снимков."""
+    must_grade(h, src, 1)
     capture.real_hover(h, *src)
     time.sleep(0.3)
     before = inv(h)
@@ -218,6 +238,7 @@ def throw_copy(h, src, points):
     try:
         for x, y in points:
             set_bomb(h, False)
+            must_grade(h, src, 61)
             capture.real_hover(h, *src)
             time.sleep(0.3)
             sx, sy = SLOT
@@ -300,22 +321,31 @@ def _enrage(h, gems):
         b = row["Бомб"]
         n = min(round((BOMBS - b) / PER), MAXN - THROWN.get(str(k), 0))  # больше MAXN за всё время — никогда
         if n > 0:
-            plan.append((k, x, y, n))
+            plan.append((k, x, y, n, b))
     capture.hover(h, *EMPTY)
+    if plan and "1" not in gems:
+        print("волны", [p[0] for p in plan], "— не задано место камня 1, пропуск")  # чем бросать — не проверить
+        plan = []
     if plan:
-        slot = None
-        if "1" in gems:  # камень 1 лежит на поле — на время бросков в инвентарь
-            focus(h)
-            slot, empty = take(h, gems["1"])
+        focus(h)
+        slot, empty = take(h, gems["1"])  # внутри — проверка «Grade 1 Gem» до Tab
         try:
+            ok = []
+            for k, x, y, n, b in plan:  # сверка волны перед самым броском (Иван, 20.10)
+                k2, row = sure(h, x, y)
+                if (k2, row and row["Бомб"]) == (k, b):
+                    ok.append((k, x, y, n))
+                else:
+                    print(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — не кидаю", flush=True)
+            plan = ok
             for k, x, y, n in plan:  # учёт до броска: сорвётся посреди — лишнего всё равно не будет
                 THROWN[str(k)] = THROWN.get(str(k), 0) + n
             json.dump(THROWN, open(THROWN_FILE, "w", encoding="utf-8"))
-            throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+            if plan:
+                throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
-            if slot:
-                focus(h)
-                put_back(h, slot, gems["1"], empty)
+            focus(h)
+            put_back(h, slot, gems["1"], empty)
     if small and "61" not in gems:
         print("маленькие волны", [k for k, *_ in small], "— не задано место камня 61, пропуск")
         small = []
