@@ -69,8 +69,8 @@ def wave_info(h, x, y):
         k, row = int(m.group(1)), {}
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
-    # чистая волна — короткая подсказка (12 строк, высота 257), злая — с «Rage modifiers» (26 строк, 417)
-    if not m and (bh > 320 or any("modifiers" in s.lower() or "dropped" in s.lower() for s in lines + dim)):
+    # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
+    if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
         return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
     return k, row
