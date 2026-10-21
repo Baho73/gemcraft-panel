@@ -279,12 +279,7 @@ def enrage_all():
                 pass
 
 
-MAXN = 6  # бросков в одну волну за всё время (Иван, 20.10: в 143 накидано сверх меры)
-THROWN_FILE = HERE / "waves" / "thrown.json"
-try:
-    THROWN = json.load(open(THROWN_FILE, encoding="utf-8"))
-except Exception:
-    THROWN = {}
+THROWN_LOG = HERE / "waves" / "thrown.tsv"  # журнал для статистики: время, волна, бросков, бомб за бросок
 
 
 def sure(h, x, y, tries=5):
@@ -319,7 +314,9 @@ def _enrage(h, gems):
                 small.append((k, x, y, 1))
             continue
         b = row["Бомб"]
-        n = min(round((BOMBS - b) / PER), MAXN - THROWN.get(str(k), 0))  # больше MAXN за всё время — никогда
+        if b > 0:  # бомбы в волне уже есть — не трогать, добрасывать нельзя (Иван, 21.10)
+            continue
+        n = round(BOMBS / PER)
         if n > 0:
             plan.append((k, x, y, n, b))
     capture.hover(h, *EMPTY)
@@ -338,9 +335,9 @@ def _enrage(h, gems):
                 else:
                     print(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — не кидаю", flush=True)
             plan = ok
-            for k, x, y, n in plan:  # учёт до броска: сорвётся посреди — лишнего всё равно не будет
-                THROWN[str(k)] = THROWN.get(str(k), 0) + n
-            json.dump(THROWN, open(THROWN_FILE, "w", encoding="utf-8"))
+            with open(THROWN_LOG, "a", encoding="utf-8") as f:
+                for k, x, y, n in plan:
+                    f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{PER}\n")
             if plan:
                 throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
