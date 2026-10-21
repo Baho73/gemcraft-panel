@@ -28,11 +28,20 @@ SLOT = (1052, 467)  # D кладёт копию камня в правую ни�
 def _tip(h, x, y):
     # настоящий курсор: наведение сообщением перебивает живая мышь над игрой — пустые чтения (21.10)
     capture.real_hover(h, *EMPTY)
-    time.sleep(0.25)
+    time.sleep(0.4)
     capture.real_hover(h, x, y)
-    time.sleep(0.6)
-    full = capture.grab(h, color=True)
-    return full, tooltip_box(full)
+    # подсказка появляется с задержкой: 0.6 с не хватало — все чтения пустые (Иван, 16:27 21.10)
+    end = time.time() + 2.5
+    while True:
+        time.sleep(0.3)
+        full = capture.grab(h, color=True)
+        b = tooltip_box(full)
+        if b:  # дать подсказке дорисоваться (проявляется плавно) и снять заново
+            time.sleep(0.4)
+            full = capture.grab(h, color=True)
+            return full, tooltip_box(full)
+        if time.time() > end:
+            return full, b
 
 
 def dot():
