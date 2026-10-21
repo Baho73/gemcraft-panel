@@ -590,7 +590,15 @@ def loop(interval):
                 st["enraging"] = t
                 print(stamp, f"ЗЛОСТЬ: светлая волна у строки {wy} (с {top}) — пауза, злю волны", flush=True)
             else:
+                if checks["enrage"].get() and chain.on:  # волна дошла во время цепочки — злить после неё (21.10)
+                    st["enrage_due"] = True
                 event(stamp, t, f"светлая волна выше строки {wy} (с {top})", "wave", top)
+        if (st.get("enrage_due") and not chain.on and not policy.hold and not policy.busy()
+                and st.get("state") == "pause" and not st.get("enraging")):
+            st["enrage_due"] = False
+            policy.chain_begin()  # игра уже на паузе после цепочки — пробел не нужен
+            st["enraging"] = t
+            print(stamp, "ЗЛОСТЬ: волна дошла во время цепочки — злю после неё", flush=True)
         if st.get("enraging") and st.get("state") == "pause" and not policy.busy():
             st["enraging"] = None
             try:
