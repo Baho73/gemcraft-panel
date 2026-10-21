@@ -302,6 +302,7 @@ def sure(h, x, y, tries=5):
 def _enrage(h, gems):
     plan, small, seen = [], [], set()
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
+    set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
         k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
