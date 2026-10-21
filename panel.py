@@ -599,6 +599,8 @@ def loop(interval):
             policy.chain_begin()  # игра уже на паузе после цепочки — пробел не нужен
             st["enraging"] = t
             print(stamp, "ЗЛОСТЬ: волна дошла во время цепочки — злю после неё", flush=True)
+        elif st.get("enrage_due") and not chain.on and not policy.busy() and st.get("state") == "run":
+            st["enrage_due"] = False  # цепочка кончилась без паузы — не злить потом на чужой паузе
         if st.get("enraging") and st.get("state") == "pause" and not policy.busy():
             st["enraging"] = None
             try:
