@@ -22,6 +22,7 @@ PAUSE = 1.0  # с между щелчками-бросками
 BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
+SPARK = 69  # уровень камня для искр; место — кнопка «камень 61» (Иван, 21.10: теперь 69, не 61)
 SLOT = (1052, 467)  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
@@ -248,7 +249,7 @@ def throw_copy(h, src, points):
     try:
         for x, y in points:
             set_bomb(h, False)
-            must_grade(h, src, 61)
+            must_grade(h, src, SPARK)
             capture.real_hover(h, *src)
             time.sleep(0.3)
             sx, sy = SLOT
