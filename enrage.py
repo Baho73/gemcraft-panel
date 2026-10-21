@@ -26,9 +26,10 @@ SLOT = (1052, 467)  # D кладёт копию камня в правую ни�
 
 
 def _tip(h, x, y):
-    capture.hover(h, *EMPTY)
+    # настоящий курсор: наведение сообщением перебивает живая мышь над игрой — пустые чтения (21.10)
+    capture.real_hover(h, *EMPTY)
     time.sleep(0.25)
-    capture.hover(h, x, y)
+    capture.real_hover(h, x, y)
     time.sleep(0.6)
     full = capture.grab(h, color=True)
     return full, tooltip_box(full)
