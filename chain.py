@@ -35,6 +35,7 @@ class Chain:
         self.game, self.schedule, self.log, self.status = game, schedule, log, status
         self.on_change, self.after_click, self.blocker = on_change, after_click, blocker
         self.on, self.i, self.tries = False, 0, 0
+        self.run = 0  # номер прогона: тик старого прогона после стоп+пуск ничего не делает (ревью 1, №5)
 
     @staticmethod
     def steps():
@@ -57,11 +58,12 @@ class Chain:
             self.status("цепочка: жду отклика игры на пробел")  # в строку окна, не в журнал: проверка идёт каждый кадр
             return False
         self.on, self.i, self.tries = True, 0, 0
+        self.run += 1
         self.policy.chain_begin()
         self.on_change(True)
         self.status(f"цепочка идёт ({why})")
         self.log(f"пуск: {why}")
-        self.tick()
+        self.tick(self.run)
         return True
 
     def stop(self, why, done=False, paused=False):
@@ -81,9 +83,15 @@ class Chain:
     #            перед действием — проверка, что игра на паузе; если сняли — прервать и ничего не жать.
     #   SIDE_EFFECTS: клавиши, курсор, щелчки в окне игры; планирует следующий tick
     # END_CONTRACT: tick
-    def tick(self):
-        if not self.on:
+    def tick(self, run=None):
+        if not self.on or run != self.run:
             return
+        try:
+            self._tick()
+        except Exception as e:  # шаг упал — цепочку остановить, иначе все паузы навсегда «отложены» (ревью 1, №12)
+            self.stop(f"ошибка шага: {e}")
+
+    def _tick(self):
         kind, arg = self.steps()[self.i]
         state, cfg = self.game(), self.settings()
         nxt = cfg["gap"]
@@ -114,10 +122,11 @@ class Chain:
         elif kind == "done":
             self.stop("выполнена", done=True)
             return
-        elif state == "run":
-            # игру сняли с паузы посреди цепочки (Иван или прошлый шаг) — прервать и ничего не жать
+        elif state != "pause":
+            # игру сняли с паузы посреди цепочки (Иван или прошлый шаг) или паузу не видно (None) — ничего не жать
             prev = self.steps()[self.i - 1]
-            self.stop(f"игру сняли с паузы (после шага {prev[0]} {prev[1]}) — цепочка прервана")
+            what = "игру сняли с паузы" if state == "run" else "не вижу паузы"
+            self.stop(f"{what} (после шага {prev[0]} {prev[1]}) — цепочка прервана")
             return
         elif kind == "key":
             press_key(self.hwnd, VK.get(arg, ord(arg)))
@@ -145,7 +154,7 @@ class Chain:
                 self.log(f"щелчок {arg} {p}")
                 self.after_click(arg)
             self.i += 1
-        self.schedule(int(nxt * 1000), self.tick)
+        self.schedule(int(nxt * 1000), lambda run=self.run: self.tick(run))
 
 
 # START_BLOCK_SELF_CHECK
@@ -218,4 +227,18 @@ def self_check():
     now[0] = 21.0
     queue.pop(0)()
     assert not ch.on and pol.spaces == ["pause"]
+    # ревью 1: стоп+пуск при ждущем тике — старый тик молчит; паузу не видно (None) — ничего не жать
+    pol, queue[:] = Policy(), []
+    ch = Chain(0, pol, {n: [1, 1] for n in "ABCDE"}, lambda: {"real": True, "gap": 1, "wait": 1}, lambda: game[0],
+               lambda ms, fn: queue.append(fn), lambda *a, **k: None, lambda *a: None)
+    game[0] = "pause"
+    assert ch.start("тест")
+    ch.stop("тест")
+    assert ch.start("тест") and len(queue) == 2
+    sent.clear()
+    queue.pop(0)()  # старый тик
+    assert len(queue) == 1 and sent == []
+    game[0] = None
+    queue.pop(0)()  # клавиша при невидимой паузе
+    assert not ch.on and sent == []
 # END_BLOCK_SELF_CHECK
