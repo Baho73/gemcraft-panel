@@ -81,7 +81,7 @@ def wave_info(h, x, y):
             return None, None
         k, row = int(m.group(1)), {}
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
-    m = re.search(r"([\d,]+) gem bombs? dropped", " ".join(dim), re.I)
+    m = re.search(r"([\d,]+) \S+ bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
     if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
         return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
@@ -374,13 +374,14 @@ def sure(h, x, y, tries=5):
 
 
 def _enrage(h, gems, opt):
-    plan, small, seen = [], [], set()
+    plan, small, seen, bad = [], [], set(), []  # bad — не обработаны: игру не запускать (Иван, 22.10)
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
     set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
         k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
             print(y, "подсказка не прочиталась — пропуск")
+            bad.append(f"строка {y}")
             continue
         if k in seen:
             continue
@@ -412,12 +413,15 @@ def _enrage(h, gems, opt):
                     ok.append((k, x, y, n))
                 else:
                     print(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — не кидаю", flush=True)
+                    bad.append(f"волна {k}")
             plan = ok
             if lim:
                 done = []
                 for k, x, y, n in plan:
                     n, row = to_limit(h, k, x, y, opt["limit"])
                     done.append((k, x, y, n))
+                    if not (row and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]):
+                        bad.append(f"волна {k}")
                     with open(THROWN_LOG, "a", encoding="utf-8") as f:
                         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"
                                 f"\t{row and (row['Бомб'], row.get('Здоровье'), row.get('Броня'))}\n")
@@ -441,6 +445,8 @@ def _enrage(h, gems, opt):
         _, row = wave_info(h, x, y)
         print(f"волна {k} +{n} бросков, бомб:", row and row["Бомб"], flush=True)
     capture.hover(h, *EMPTY)
+    if bad:
+        raise RuntimeError(f"не обработаны: {', '.join(bad)}")  # пульт оставит игру на паузе
 
 
 def main():

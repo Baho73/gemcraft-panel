@@ -10,7 +10,7 @@ from openpyxl import Workbook
 from tooltip_ocr import ocr
 
 HERE = Path(__file__).parent
-NUM = r"(\d[\d,]*(?:\.\d+)?)(?:\s*[€eE]\s*(\d+))?"  # 1,234.5 или 4.642 €33 (так OCR видит «ε33»)
+NUM = r"(\d[\d,]*(?:\.\d+)?)(?:\s*[€eEF]\s*(\d+))?"  # 1,234.5 или 4.642 €33 (так OCR видит «ε33»; и «F28», 22.10)
 
 GEM = {"damage": "Урон от", "range": "Дальность", "mana value": "Стоимость маны", "upgrade cost": "Цена улучшения",
        "hits": "Попадания"}
@@ -22,7 +22,9 @@ SUM = {"Урон от", "Урон до", "Стоимость маны", "Цен�
 
 def nums(s):
     s = re.sub(r"(?<![A-Za-z])O(?![A-Za-z])", "0", s)  # «Hits: O» — ноль, прочитанный буквой
-    return [float(a.replace(",", "")) * 10 ** int(e or 0) for a, e in re.findall(NUM, s)]
+    # «202 €29» — точка потеряна: игра пишет d.ddd eN, вернуть точку после первой цифры (волна 266, 22.10)
+    return [float(a[0] + "." + a[1:] if e and len(a) > 1 and not set(a) & set(".,") else a.replace(",", ""))
+            * 10 ** int(e or 0) for a, e in re.findall(NUM, s)]
 
 
 def label(line, known):
@@ -45,7 +47,7 @@ def glue(lines):
     """OCR переносит число на свою строку («Armor IEVEI:» / «9.991 €73») — приклеить к подписи."""
     out = []
     for l in lines:
-        if out and re.fullmatch(r"[\d,.\s€eE+]+", l) and out[-1].rstrip().endswith(":"):
+        if out and re.fullmatch(r"[\d,.\s€eEF+]+", l) and out[-1].rstrip().endswith(":"):
             out[-1] += " " + l
         else:
             out.append(l)
@@ -145,6 +147,7 @@ def self_check():
     assert r["Здоровье"] == 1.2e36 and isclose(r["Броня"], 9.991e73)  # число на своей строке
     _, _, g = parse(["Grade 49 Gem", "x", "mc:nca vatuæ 1.042 E18"])
     assert g["Стоимость маны"] == 1.042e18  # двоеточие внутри подписи
+    assert isclose(nums("2.319 F28")[0], 2.319e28) and isclose(nums("202 €29")[0], 2.02e29)  # 22.10
 
 
 if __name__ == "__main__":
