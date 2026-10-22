@@ -1,6 +1,7 @@
 """Злость волн бомбами. Пока шаг 1: найти светлые (неразозлённые) блоки волн и прочитать их подсказки.
 Запуск (bash): cd "D:/Python/gems" && PYTHONUTF8=1 python enrage.py"""
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -22,8 +23,10 @@ PAUSE = 1.0  # с между щелчками-бросками
 BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
-SPARK = 69  # уровень камня для искр; место — кнопка «камень 61» (Иван, 21.10: теперь 69, не 61)
-SLOT = (1052, 467)  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
+SLOT = (1052, 467)
+# digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
+# пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
+SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
 def _tip(h, x, y):
@@ -195,9 +198,9 @@ def must_grade(h, p, want):
         raise RuntimeError(f"в точке {list(p)} камень уровня {g}, нужен {want} — не бросаю; задай место кнопкой «камень {want}»")
 
 
-def take(h, src):
+def take(h, src, want=1):
     """Камень с поля в инвентарь: навести и Tab (Иван, 20.10). Возвращает точку, куда он лёг, — по разнице снимков."""
-    must_grade(h, src, 1)
+    must_grade(h, src, want)
     capture.real_hover(h, *src)
     time.sleep(0.3)
     before = inv(h)
@@ -241,7 +244,68 @@ def drag(h, a, b):
     time.sleep(0.3)
 
 
-def throw_copy(h, src, points):
+def steady(h, x, y, tries=6):
+    """Подсказка волны, пока два чтения подряд не совпадут по бомбам, здоровью и броне: бомбы падают не сразу."""
+    last = None
+    for _ in range(tries):
+        k, row = wave_info(h, x, y)
+        key = row and (row["Бомб"], row.get("Здоровье"), row.get("Броня"))
+        if key and key == last:
+            return row
+        last = key
+        time.sleep(0.5)
+    return None
+
+
+def to_limit(h, k, x, y, limit):
+    """Щелчок за щелчком в волну k, пока здоровье или броня не превысят limit (Иван, 22.10).
+    Предохранитель: прирост от щелчка 1 и 2 должен совпасть (±10%) — по нему число щелчков до порога +10%;
+    дальше каждый щелчок сверяется с этим приростом. Не так — стоп. Возвращает (щелчков, строка подсказки)."""
+    keys = ("Здоровье", "Броня")
+    row = steady(h, x, y)
+    if not row or any(not row.get(c) for c in keys):
+        print(f"волна {k}: здоровье/броня не прочитаны — не кидаю", flush=True)
+        return 0, row
+    first, way, cap, n = None, None, None, 0
+    while max(row[c] for c in keys) <= limit:
+        if cap is not None and n >= cap:
+            print(f"волна {k}: {n} щелчков — предел по расчёту, порог не достигнут — стоп", flush=True)
+            break
+        throw(h, [(x, y)])
+        n += 1
+        time.sleep(1.0)
+        new = steady(h, x, y)
+        if not new or any(not new.get(c) for c in keys) or new["Бомб"] <= row["Бомб"]:
+            print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
+            break
+        step = {c: (new[c] / row[c], new[c] - row[c]) for c in keys}
+        row = new
+        if first is None:
+            first = step
+            continue
+        grow = [c for c in keys if first[c][1] > 0]
+        if not grow:
+            print(f"волна {k}: бросок не растит здоровье и броню — стоп", flush=True)
+            break
+        # множитель: сравниваю показатели степени — при множителе 1.001 отношение самих множителей ничего не ловит
+        mult = all(first[c][0] > 1 and abs(math.log(step[c][0]) / math.log(first[c][0]) - 1) <= 0.1 for c in grow)
+        add = all(abs(step[c][1] / first[c][1] - 1) <= 0.1 for c in grow)
+        if way is None:
+            way = "mult" if mult else "add" if add else None
+            if way is None:
+                print(f"волна {k}: щелчки 1 и 2 дали разный прирост {first} / {step} — стоп", flush=True)
+                break
+            need = min(math.log(limit / row[c]) / math.log(first[c][0]) if way == "mult"
+                       else (limit - row[c]) / first[c][1] for c in grow)
+            cap = n + math.ceil(max(need, 0) * 1.1) + 1
+            print(f"волна {k}: прирост {way}, до {limit:g} ещё ~{need:.1f} щелчков, предел {cap}", flush=True)
+        elif not (mult if way == "mult" else add):
+            print(f"волна {k}: щелчок {n} дал другой прирост {step} — стоп", flush=True)
+            break
+    return n, row
+
+
+def throw_copy(h, src, points, want):
     """Маленьким волнам — по одному камню (Иван, 20.10): навести на камень src, D — копия ложится в SLOT,
     B, перетащить копию на волну. Оригинал остаётся на месте."""
     was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
@@ -249,7 +313,7 @@ def throw_copy(h, src, points):
     try:
         for x, y in points:
             set_bomb(h, False)
-            must_grade(h, src, SPARK)
+            must_grade(h, src, want)
             capture.real_hover(h, *src)
             time.sleep(0.3)
             sx, sy = SLOT
@@ -281,7 +345,7 @@ def enrage_all():
     was_fg = win32gui.GetForegroundWindow()
     try:
         focus(h)
-        _enrage(h, cfg.get("gems", {}))
+        _enrage(h, cfg.get("gems", {}), {**SETTINGS, **cfg.get("enrage", {})})
     finally:
         if was_fg and was_fg != h:
             try:
@@ -309,7 +373,7 @@ def sure(h, x, y, tries=5):
     return None, None
 
 
-def _enrage(h, gems):
+def _enrage(h, gems, opt):
     plan, small, seen = [], [], set()
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
     set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
@@ -332,12 +396,14 @@ def _enrage(h, gems):
         if n > 0:
             plan.append((k, x, y, n, b))
     capture.hover(h, *EMPTY)
-    if plan and "1" not in gems:
-        print("волны", [p[0] for p in plan], "— не задано место камня 1, пропуск")  # чем бросать — не проверить
+    lim = opt["mode"] == "limit"
+    src, want = ("61", opt["grade"]) if lim else ("1", 1)
+    if plan and src not in gems:
+        print("волны", [p[0] for p in plan], f"— не задано место камня {src}, пропуск")  # чем бросать — не проверить
         plan = []
     if plan:
         focus(h)
-        slot, empty = take(h, gems["1"])  # внутри — проверка «Grade 1 Gem» до Tab
+        slot, empty = take(h, gems[src], want)  # внутри — проверка «Grade N Gem» до Tab
         try:
             ok = []
             for k, x, y, n, b in plan:  # сверка волны перед самым броском (Иван, 20.10)
@@ -347,19 +413,29 @@ def _enrage(h, gems):
                 else:
                     print(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — не кидаю", flush=True)
             plan = ok
-            with open(THROWN_LOG, "a", encoding="utf-8") as f:
+            if lim:
+                done = []
                 for k, x, y, n in plan:
-                    f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{PER}\n")
-            if plan:
-                throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
+                    n, row = to_limit(h, k, x, y, opt["limit"])
+                    done.append((k, x, y, n))
+                    with open(THROWN_LOG, "a", encoding="utf-8") as f:
+                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"
+                                f"\t{row and (row['Бомб'], row.get('Здоровье'), row.get('Броня'))}\n")
+                plan = done
+            else:
+                with open(THROWN_LOG, "a", encoding="utf-8") as f:
+                    for k, x, y, n in plan:
+                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{PER}\n")
+                if plan:
+                    throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
             focus(h)
-            put_back(h, slot, gems["1"], empty)
+            put_back(h, slot, gems[src], empty)
     if small and "61" not in gems:
         print("маленькие волны", [k for k, *_ in small], "— не задано место камня 61, пропуск")
         small = []
     if small:
-        throw_copy(h, gems["61"], [(x, y) for k, x, y, n in small])
+        throw_copy(h, gems["61"], [(x, y) for k, x, y, n in small], opt["grade"])
     time.sleep(0.5)
     for k, x, y, n in plan + small:
         _, row = wave_info(h, x, y)
