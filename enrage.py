@@ -4,6 +4,7 @@ import json
 import math
 import re
 import time
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -30,7 +31,36 @@ SLOT = (1052, 467)
 SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
+STOP = threading.Event()  # «Стоп пульта»: злость идёт в своём потоке и проверяет флаг перед каждым действием
+
+
+class Stopped(RuntimeError):
+    pass
+
+
+def check():
+    if STOP.is_set():
+        raise Stopped("стоп пульта — злость прервана")
+
+
+def snap(h, stop=True):
+    """Кадр игры с экрана: PrintWindow — до секунд и грузит игру (ревью 1, №9). Пульт держит себя вне игры.
+    stop=False — для уборки после стопа (выключить режим бомбы, вернуть камень)."""
+    if stop:
+        check()
+    return capture.grab(h, color=True, screen=True)
+
+
+def mouse(h, x, y, flags):
+    """Событие мыши с координатами внутри (ABSOLUTE): живая мышь Ивана не уводит щелчок (ревью 1, №4)."""
+    u = ctypes.windll.user32
+    sx, sy = win32gui.ClientToScreen(h, (int(x), int(y)))
+    vx, vy, vw, vh = (u.GetSystemMetrics(i) for i in (76, 77, 78, 79))  # виртуальный экран: все мониторы
+    u.mouse_event(0x0001 | 0x8000 | 0x4000 | flags, (sx - vx) * 65535 // (vw - 1), (sy - vy) * 65535 // (vh - 1), 0, 0)
+
+
 def _tip(h, x, y):
+    check()
     # настоящий курсор: наведение сообщением перебивает живая мышь над игрой — пустые чтения (21.10)
     capture.real_hover(h, *EMPTY)
     time.sleep(0.4)
@@ -39,11 +69,11 @@ def _tip(h, x, y):
     end = time.time() + 2.5
     while True:
         time.sleep(0.3)
-        full = capture.grab(h, color=True)
+        full = snap(h)
         b = tooltip_box(full)
         if b:  # дать подсказке дорисоваться (проявляется плавно) и снять заново
             time.sleep(0.4)
-            full = capture.grab(h, color=True)
+            full = snap(h)
             return full, tooltip_box(full)
         if time.time() > end:
             return full, b
@@ -116,12 +146,12 @@ def bomb_yellow(full):
 def set_bomb(h, want):
     """B настоящей клавишей, пока режим бомбы не станет want (игра активна). B переключает режим туда-обратно."""
     for _ in range(3):
-        if bomb_on(capture.grab(h, color=True)) == want:
+        if bomb_on(snap(h, False)) == want:
             return True
         ctypes.windll.user32.keybd_event(0x42, 0x30, 0, 0)
         ctypes.windll.user32.keybd_event(0x42, 0x30, 2, 0)
         time.sleep(0.3)
-    return bomb_on(capture.grab(h, color=True)) == want
+    return bomb_on(snap(h, False)) == want
 
 
 @contextmanager
@@ -137,7 +167,7 @@ def armed(h):
     try:
         for _ in range(10):  # Иван: бросать, только когда кнопка жёлтая
             time.sleep(0.1)
-            yel = bomb_yellow(capture.grab(h, color=True))
+            yel = bomb_yellow(snap(h))
             if yel > YELLOW:
                 break
         else:
@@ -150,12 +180,12 @@ def armed(h):
 
 
 def hit(h, x, y):
-    """Настоящий щелчок по волне (щелчок сообщением игра не принимает, 19.10)."""
-    u = ctypes.windll.user32
-    u.SetCursorPos(*win32gui.ClientToScreen(h, (x, y)))
+    """Настоящий щелчок по волне (щелчок сообщением игра не принимает, 19.10). Нажатие несёт свои координаты."""
+    check()
+    mouse(h, x, y, 0)
     time.sleep(0.1)
-    u.mouse_event(0x0002, 0, 0, 0, 0)  # LEFTDOWN в текущей точке
-    u.mouse_event(0x0004, 0, 0, 0, 0)  # LEFTUP
+    mouse(h, x, y, 0x0002)  # LEFTDOWN
+    mouse(h, x, y, 0x0004)  # LEFTUP
 
 
 def throw(h, points):
@@ -180,17 +210,17 @@ INV = (980, 142, 1070, 484)  # сетка инвентаря: x0, y0, x1, y1
 
 def click(h, p):
     """Настоящий щелчок по точке окна игры."""
-    u = ctypes.windll.user32
-    u.SetCursorPos(*win32gui.ClientToScreen(h, tuple(p)))
+    # без check(): так камень возвращается на место и после «Стоп пульта»
+    mouse(h, *p, 0)
     time.sleep(0.15)
-    u.mouse_event(0x0002, 0, 0, 0, 0)
-    u.mouse_event(0x0004, 0, 0, 0, 0)
+    mouse(h, *p, 0x0002)
+    mouse(h, *p, 0x0004)
     time.sleep(0.3)
 
 
 def inv(h):
     x0, y0, x1, y1 = INV
-    return capture.grab(h, color=True)[y0:y1, x0:x1]
+    return snap(h, False)[y0:y1, x0:x1]
 
 
 def grade(h, p):
@@ -244,25 +274,29 @@ def put_back(h, slot, src, empty):
 
 def drag(h, a, b):
     """Настоящее перетаскивание мышью из точки a в точку b окна игры."""
-    u = ctypes.windll.user32
-    (ax, ay), (bx, by) = (win32gui.ClientToScreen(h, p) for p in (a, b))
-    u.SetCursorPos(ax, ay)
+    check()
+    (ax, ay), (bx, by) = a, b
+    mouse(h, ax, ay, 0)
     time.sleep(0.15)
-    u.mouse_event(0x0002, 0, 0, 0, 0)
+    mouse(h, ax, ay, 0x0002)
     time.sleep(0.15)
     for i in range(1, 9):
-        u.SetCursorPos(ax + (bx - ax) * i // 8, ay + (by - ay) * i // 8)
+        mouse(h, ax + (bx - ax) * i // 8, ay + (by - ay) * i // 8, 0)
         time.sleep(0.04)
     time.sleep(0.15)
-    u.mouse_event(0x0004, 0, 0, 0, 0)
+    mouse(h, bx, by, 0x0004)
     time.sleep(0.3)
 
 
-def steady(h, x, y, tries=6):
-    """Подсказка волны, пока два чтения подряд не совпадут по бомбам, здоровью и броне: бомбы падают не сразу."""
+def steady(h, x, y, want, tries=6):
+    """Подсказка волны want, пока два чтения подряд не совпадут по бомбам, здоровью и броне: бомбы падают не сразу.
+    Под точкой оказалась другая волна (полосу прокрутили) — None (ревью 1, №8)."""
     last = None
     for _ in range(tries):
         k, row = wave_info(h, x, y)
+        if row and k != want:
+            print(f"под точкой волна {k}, а не {want}", flush=True)
+            return None
         key = row and (row["Бомб"], row.get("Здоровье"), row.get("Броня"))
         if key and key == last:
             return row
@@ -293,7 +327,7 @@ def _to_limit(h, k, x, y, limit, row, keys):
         hit(h, x, y)
         n += 1
         time.sleep(1.0)
-        new = steady(h, x, y)
+        new = steady(h, x, y, k)
         if not new or any(not new.get(c) for c in keys) or new["Бомб"] <= row["Бомб"]:
             print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
             break
@@ -336,11 +370,11 @@ def throw_copy(h, src, points, want):
             capture.real_hover(h, *src)
             time.sleep(0.3)
             sx, sy = SLOT
-            before = capture.grab(h, color=True)[sy - 10:sy + 10, sx - 10:sx + 10]
+            before = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
             ctypes.windll.user32.keybd_event(0x44, 0x20, 0, 0)  # D
             ctypes.windll.user32.keybd_event(0x44, 0x20, 2, 0)
             time.sleep(0.4)
-            after = capture.grab(h, color=True)[sy - 10:sy + 10, sx - 10:sx + 10]
+            after = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
             if cv2.absdiff(before, after).mean() < 10:
                 raise RuntimeError("копия камня не появилась в правой нижней ячейке")
             if not set_bomb(h, True):
@@ -397,7 +431,7 @@ def _enrage(h, gems, opt):
     plan, small, seen = [], [], set()
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
     set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
-    for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
+    for top, bot, (x, y), kind, light in wave_blocks(snap(h)):
         k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
             raise RuntimeError(f"строка {y}: подсказка не прочиталась — стоп")
@@ -460,7 +494,7 @@ def _enrage(h, gems, opt):
 
 def main():
     h = capture.find_window(json.load(open(HERE / "digit_grab.json", encoding="utf-8"))["title"])
-    for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
+    for top, bot, (x, y), kind, light in wave_blocks(snap(h)):
         if light:
             k, row = wave_info(h, x, y)
             print(y, kind, k, row and {c: row.get(c) for c in ("Количество", "Здоровье", "Броня", "Мана за убийство")})

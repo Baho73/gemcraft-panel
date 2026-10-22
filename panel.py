@@ -19,7 +19,7 @@
 #   STEP_GAP - пауза между шагами цепочки, с
 #   FROZEN - кадров неподвижной карты = пауза (кнопок не видно)
 # END_MODULE_MAP
-import builtins, ctypes, json, re, time, winsound
+import builtins, ctypes, json, re, threading, time, winsound
 from pathlib import Path
 
 import cv2, numpy as np, win32gui
@@ -51,7 +51,7 @@ def loop(interval):
     import tkinter as tk
     cfg = json.loads(CFG.read_text(encoding="utf-8"))
     hwnd, grads = find_window(cfg["title"]), load_grad()
-    for d in (UNK, FRAMES, LIB):
+    for d in (UNK, FRAMES, LIB, HERE / "waves"):  # waves — журналы волн (ревью 1, №18)
         d.mkdir(exist_ok=True)
     icons = cfg.get("icons", {})
     st = dict(last=None, prev=None, n=0, pend=None, unk_saved=0.0, mana="", map=None, diffs=[], start=time.time(), seen=recent(), above_raw=False, above_known=False, frames=[])
@@ -103,6 +103,8 @@ def loop(interval):
             print(time.strftime("%H%M%S"), "ПУЛЬТ: снова работает", flush=True)
         else:
             chain.stop("кнопка «Стоп пульта»")
+            enrage.STOP.set()  # идущая злость встаёт перед следующим действием
+            st["enraging"], st["enrage_due"] = None, False  # ждущая злость не начнётся (ревью 1, №3)
             policy.hold_on()
             hold_btn.config(text="Пульт на стопе — нажать, чтобы продолжить", bg="#9e9e9e")
             print(time.strftime("%H%M%S"), "ПУЛЬТ: стоп — цепочка оборвана, отложенное сброшено, игра на паузу",
@@ -472,14 +474,46 @@ def loop(interval):
             status.set("ошибка в кадре (см. digit_errors.log), опрос продолжается")
             root.after(int(interval * 1000), step)
 
+    def enrage_wait(stamp):
+        """Злость идёт своим потоком: пульт только следит. Игру сняли с паузы — стоп злости. Кончилась — итог."""
+        job = st["enrage_job"]
+        if not job.get("done"):
+            try:
+                if game_state(grab(hwnd, None, color=True, screen=True)) == "run" and not enrage.STOP.is_set():
+                    enrage.STOP.set()
+                    print(stamp, "ЗЛОСТЬ: игру сняли с паузы — злость прерываю", flush=True)
+            except Exception:
+                pass
+            status.set("злость идёт" + (" — прерываю" if enrage.STOP.is_set() else ""))
+            return True
+        st["enrage_job"] = None
+        err = job.get("err")
+        why = None if err else "пульт на стопе" if policy.hold else blocker()
+        if err:
+            print(stamp, "ЗЛОСТЬ: ошибка, игра оставлена на паузе:", err, flush=True)
+        elif why:
+            print(stamp, f"ЗЛОСТЬ: готово, игра оставлена на паузе: {why}", flush=True)
+        if err or why:
+            winsound.MessageBeep()
+            policy.chain_end(paused=True)
+        else:
+            print(stamp, "ЗЛОСТЬ: готово, снимаю паузу", flush=True)
+            policy.chain_space("run")
+            policy.chain_end()
+        return False
+
     def step_inner():
         t = time.time()
         stamp = time.strftime("%H%M%S", time.localtime(t)) + f"_{int(t * 1000) % 1000:03d}"
+        if st.get("enrage_job") is not None and enrage_wait(stamp):
+            root.after(200, step)  # злость двигает мышь и снимает кадры сама — пульт не мешает
+            return
         try:
             if screen_var.get():
                 keep_clear()
             full = grab(hwnd, None, color=True, screen=screen_var.get())  # окно целиком: из него и мана, и индикаторы
         except Exception as e:  # окно свернули или закрыли — ждём, не падаем
+            st["state"] = None  # старое «pause» цепочке не годится: без свежего кадра не щёлкать (ревью 1, №7)
             status.set(f"нет снимка окна: {e}")
             root.after(1000, step)
             return
@@ -553,7 +587,8 @@ def loop(interval):
                 if why != "идёт":
                     mlog(f"ждёт: {why}")
             st["chain_why"] = why
-        found = {(x // 8, y // 8) for x, y in swirls(full)}  # значки стоят на месте; //8 — на дрожь в пиксель
+        # значки стоят на месте; //8 — на дрожь в пиксель. Самый дорогой детектор (12 мс) — только с галочкой (ревью 1, №10)
+        found = {(x // 8, y // 8) for x, y in swirls(full)} if checks["swirl"].get() else set()
         swirl_now.set(f"сейчас: {len(found)}")
         st["swirls"] = len(found)
         for key in found - swirl_ev.keys():
@@ -601,25 +636,19 @@ def loop(interval):
             print(stamp, "ЗЛОСТЬ: волна дошла во время цепочки — злю после неё", flush=True)
         elif st.get("enrage_due") and not chain.on and not policy.busy() and st.get("state") == "run":
             st["enrage_due"] = False  # цепочка кончилась без паузы — не злить потом на чужой паузе
-        if st.get("enraging") and st.get("state") == "pause" and not policy.busy():
+        if st.get("enraging") and st.get("state") == "pause" and not policy.busy() and not policy.hold:
             st["enraging"] = None
-            try:
-                enrage.enrage_all()  # ponytail: блокирует окно пульта на время бросков (~10-20 с)
-            except Exception as e:
-                print(stamp, "ЗЛОСТЬ: ошибка, игра оставлена на паузе:", e, flush=True)
-                winsound.MessageBeep()
-                policy.chain_end(paused=True)
-            else:
-                st["wave_top"] = light_top(grab(hwnd, None, color=True, screen=screen_var.get()))
-                why = blocker()
-                if why:
-                    print(stamp, f"ЗЛОСТЬ: готово, игра оставлена на паузе: {why}", flush=True)
-                    winsound.MessageBeep()
-                    policy.chain_end(paused=True)
-                else:
-                    print(stamp, "ЗЛОСТЬ: готово, снимаю паузу", flush=True)
-                    policy.chain_space("run")
-                    policy.chain_end()
+            # своим потоком: окно пульта и «Стоп пульта» живы, пока злость кидает (ревью 1, №1-2)
+            enrage.STOP.clear()
+            box = st["enrage_job"] = {}
+
+            def job():
+                try:
+                    enrage.enrage_all()
+                except BaseException as e:  # и SystemExit из find_window: пульт не закрывать (ревью 1, №22)
+                    box["err"] = e
+                box["done"] = True
+            threading.Thread(target=job, daemon=True).start()
         elif st.get("enraging") and t - st["enraging"] > policy.wait + 5:
             print(stamp, "ЗЛОСТЬ: игра не встала на паузу — отменено", flush=True)
             st["enraging"] = None
@@ -631,7 +660,9 @@ def loop(interval):
             cv2.imwrite(str(LIB / f"{stamp}.png"), bgr)
             st["prev"], st["n"] = gray, st["n"] + 1
         unk = []
-        s = read(gray, load(), unk, grads)  # ponytail: маски перечитываем каждый круг — разметка подхватывается на лету
+        if t - st.get("masks_at", 0) >= 1:  # маски с диска раз в секунду — разметка подхватывается почти на лету
+            st["masks"], st["masks_at"] = load(), t
+        s = read(gray, st["masks"], unk, grads)
         if unk and t - st["unk_saved"] >= 1:  # не чаще раза в секунду, иначе при 10 кадрах/с папка забьётся
             st["unk_saved"] = t
             for ux, g in unk:
