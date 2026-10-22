@@ -1,0 +1,81 @@
+{
+  "coder": "claude",
+  "reviewer": "kimi",
+  "command": [
+    "kimi",
+    "-c",
+    "-p",
+    "{prompt}"
+  ],
+  "every": 60,
+  "models_checked": "2026-10-23",
+  "reviewers": {
+    "kimi": {
+      "provider": "Moonshot",
+      "model": "kimi-code/k3",
+      "command": [
+        "kimi",
+        "-m",
+        "{model}",
+        "-p",
+        "{prompt}"
+      ]
+    },
+    "codex": {
+      "provider": "OpenAI",
+      "model": "gpt-6.1-sol",
+      "command": [
+        "codex",
+        "exec",
+        "-m",
+        "{model}",
+        "-s",
+        "workspace-write",
+        "-c",
+        "sandbox_workspace_write.network_access=true",
+        "{prompt}"
+      ]
+    },
+    "glm": {
+      "provider": "Z.ai",
+      "model": "glm-5.3",
+      "command": [
+        "claude-glm",
+        "-p",
+        "--permission-mode",
+        "acceptEdits",
+        "--allowedTools=Bash(git:*),Bash(python:*),Read,Write,Grep,Glob",
+        "{prompt}"
+      ],
+      "note": "модель задаёт обёртка claude-glm.cmd (ANTHROPIC_MODEL); --model claude-code не принимает"
+    },
+    "opus": {
+      "provider": "Anthropic",
+      "model": "claude-opus-5-5",
+      "command": [
+        "claude",
+        "-p",
+        "--model",
+        "{model}",
+        "--permission-mode",
+        "acceptEdits",
+        "--allowedTools=Bash(git:*),Bash(python:*),Read,Write,Grep,Glob",
+        "{prompt}"
+      ]
+    },
+    "fable": {
+      "provider": "Anthropic",
+      "model": "claude-fable-5-1",
+      "command": [
+        "claude",
+        "-p",
+        "--model",
+        "{model}",
+        "--permission-mode",
+        "acceptEdits",
+        "--allowedTools=Bash(git:*),Bash(python:*),Read,Write,Grep,Glob",
+        "{prompt}"
+      ]
+    }
+  }
+}

@@ -70,3 +70,10 @@ Legacy `docs/*.xml` files are not GRACE 4 state. If legacy GRACE 3 docs appear, 
 // ... implementation slice ...
 // END_BLOCK_EXAMPLE
 ```
+
+## Ревью
+
+Диалог с внешним ревьюером — `REVIEW-LOG.md` в корне (плагин `review-loop`, `D:\Python\review-loop`): по очереди,
+правила в шапке файла. Код правит только кодер, ревьюер пишет только в журнал. Ход кодера —
+скилл `review-turn`; задание ревьюеру — `review-task`. Проверка формата:
+`python D:/Python/review-loop/plugins/review-loop/scripts/review_loop.py --project . lint`.
