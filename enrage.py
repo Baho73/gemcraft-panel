@@ -374,15 +374,14 @@ def sure(h, x, y, tries=5):
 
 
 def _enrage(h, gems, opt):
-    plan, small, seen, bad = [], [], set(), []  # bad — не обработаны: игру не запускать (Иван, 22.10)
+    # что-то не прочиталось — сразу стоп, ничего больше не кидать; пульт оставит игру на паузе (Иван, 22.10)
+    plan, small, seen = [], [], set()
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
     set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
     for top, bot, (x, y), kind, light in wave_blocks(capture.grab(h, color=True)):
         k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
-            print(y, "подсказка не прочиталась — пропуск")
-            bad.append(f"строка {y}")
-            continue
+            raise RuntimeError(f"строка {y}: подсказка не прочиталась — стоп")
         if k in seen:
             continue
         seen.add(k)
@@ -412,19 +411,18 @@ def _enrage(h, gems, opt):
                 if (k2, row and row["Бомб"]) == (k, b):
                     ok.append((k, x, y, n))
                 else:
-                    print(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — не кидаю", flush=True)
-                    bad.append(f"волна {k}")
+                    raise RuntimeError(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — стоп")
             plan = ok
             if lim:
                 done = []
                 for k, x, y, n in plan:
                     n, row = to_limit(h, k, x, y, opt["limit"])
                     done.append((k, x, y, n))
-                    if not (row and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]):
-                        bad.append(f"волна {k}")
                     with open(THROWN_LOG, "a", encoding="utf-8") as f:
                         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"
                                 f"\t{row and (row['Бомб'], row.get('Здоровье'), row.get('Броня'))}\n")
+                    if not (row and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]):
+                        raise RuntimeError(f"волна {k}: порог не достигнут за {n} щелчков — стоп")
                 plan = done
             else:
                 with open(THROWN_LOG, "a", encoding="utf-8") as f:
@@ -445,8 +443,6 @@ def _enrage(h, gems, opt):
         _, row = wave_info(h, x, y)
         print(f"волна {k} +{n} бросков, бомб:", row and row["Бомб"], flush=True)
     capture.hover(h, *EMPTY)
-    if bad:
-        raise RuntimeError(f"не обработаны: {', '.join(bad)}")  # пульт оставит игру на паузе
 
 
 def main():

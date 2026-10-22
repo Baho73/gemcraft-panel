@@ -607,6 +607,7 @@ def loop(interval):
                 enrage.enrage_all()  # ponytail: блокирует окно пульта на время бросков (~10-20 с)
             except Exception as e:
                 print(stamp, "ЗЛОСТЬ: ошибка, игра оставлена на паузе:", e, flush=True)
+                winsound.MessageBeep()
                 policy.chain_end(paused=True)
             else:
                 st["wave_top"] = light_top(grab(hwnd, None, color=True, screen=screen_var.get()))
