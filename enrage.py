@@ -26,6 +26,8 @@ BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
 SLOT = (1052, 467)
+# номер волны в заголовке: «Wave 302», «W CVE 302», «Wave 77 of 262» (в новой игре «of N» нет, 23.10)
+WAVE_NO = r"^\W*W\S*(?:\s+(?!of\b)\S{1,4})?\s+(\d+)(?: of \d+)?\s*$"
 # digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
 # пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
 SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
@@ -102,12 +104,12 @@ def wave_info(h, x, y):
     if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
         k, row = lines[0], {"spark": True}
     elif t != "wave":
-        m = re.search(r"(\d+) of \d+", lines[0] if lines else "")  # «Wave» бывает прочитано криво: «W CVE 77 of 262»
+        m = re.search(WAVE_NO, lines[0] if lines else "")  # «Wave» бывает прочитано криво: «W CVE 77 of 262»
         for sc in (4, 2):  # номер бывает потерян целиком: «Wave of 262» на масштабе 3, на 4 и 2 читается (волна 130, 20.10)
             if m:
                 break
             alt = ocr(full[by:by + bh, bx:bx + bw], scale=sc)
-            m = re.search(r"(\d+) of \d+", alt[0] if alt else "")
+            m = re.search(WAVE_NO, alt[0] if alt else "")
         if not m:
             return None, None
         k, row = int(m.group(1)), {}
