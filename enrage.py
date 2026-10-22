@@ -4,6 +4,7 @@ import json
 import math
 import re
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import ctypes
@@ -81,7 +82,7 @@ def wave_info(h, x, y):
             return None, None
         k, row = int(m.group(1)), {}
     dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
-    m = re.search(r"([\d,]+) \S+ bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
+    m = re.search(r"([\d,]+)(?: \S+)? bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
     if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
         return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
@@ -123,13 +124,11 @@ def set_bomb(h, want):
     return bomb_on(capture.grab(h, color=True)) == want
 
 
-def throw(h, points):
-    """B (режим бомбы), отпустить; затем с зажатым Shift щёлкнуть по каждой волне — летят копии камня,
-    сколько их — стоит на кнопке Throw Gem Bomb. Щелчок сообщением игра не принимает (19.10) — Shift и щелчок
-    настоящие, игра должна быть видна."""
-    u = ctypes.windll.user32
-    kb = u.keybd_event
-    was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
+@contextmanager
+def armed(h):
+    """B (режим бомбы) и зажатый Shift — щелчок по волне бросает копии камня, сколько стоит на кнопке
+    Throw Gem Bomb. Подсказки волн в этом режиме видны (Иван, 23.10) — читать можно, не выходя из него."""
+    kb = ctypes.windll.user32.keybd_event
     capture.real_hover(h, *EMPTY)
     focus(h)
     if not set_bomb(h, True):
@@ -143,17 +142,32 @@ def throw(h, points):
                 break
         else:
             raise RuntimeError(f"кнопка бомбы не пожелтела (жёлтого {yel:.2f})")
-        for x, y in points:  # Shift не отпускаем между щелчками — Иван: так можно несколько подряд
-            u.SetCursorPos(*win32gui.ClientToScreen(h, (x, y)))
-            time.sleep(0.1)
-            u.mouse_event(0x0002, 0, 0, 0, 0)  # LEFTDOWN в текущей точке
-            u.mouse_event(0x0004, 0, 0, 0, 0)  # LEFTUP
-            time.sleep(PAUSE)
+        yield
     finally:
         kb(0x10, 0x2A, 2, 0)  # Shift вверх — даже при ошибке, иначе залипнет
         time.sleep(0.2)
         set_bomb(h, False)  # режим остаётся после бросков — выключить, иначе следующее B его выключит
-        u.SetCursorPos(*was_pos)
+
+
+def hit(h, x, y):
+    """Настоящий щелчок по волне (щелчок сообщением игра не принимает, 19.10)."""
+    u = ctypes.windll.user32
+    u.SetCursorPos(*win32gui.ClientToScreen(h, (x, y)))
+    time.sleep(0.1)
+    u.mouse_event(0x0002, 0, 0, 0, 0)  # LEFTDOWN в текущей точке
+    u.mouse_event(0x0004, 0, 0, 0, 0)  # LEFTUP
+
+
+def throw(h, points):
+    """С зажатым Shift в режиме бомбы щёлкнуть по каждой волне — Shift не отпускать: так можно подряд (Иван)."""
+    was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
+    try:
+        with armed(h):
+            for x, y in points:
+                hit(h, x, y)
+                time.sleep(PAUSE)
+    finally:
+        ctypes.windll.user32.SetCursorPos(*was_pos)
         if was_fg and was_fg != h:
             try:
                 win32gui.SetForegroundWindow(was_fg)
@@ -257,21 +271,26 @@ def steady(h, x, y, tries=6):
     return None
 
 
-def to_limit(h, k, x, y, limit):
-    """Щелчок за щелчком в волну k, пока здоровье или броня не превысят limit (Иван, 22.10).
-    Предохранитель: прирост от щелчка 1 и 2 должен совпасть (±10%) — по нему число щелчков до порога +10%;
-    дальше каждый щелчок сверяется с этим приростом. Не так — стоп. Возвращает (щелчков, строка подсказки)."""
+def to_limit(h, k, x, y, limit, row):
+    """Щелчок за щелчком в волну k, пока здоровье или броня не превысят limit (Иван, 22.10); row — подсказка
+    из обхода волн до камня. Предохранитель: прирост от щелчка 1 и 2 должен совпасть (±10%) — по нему число
+    щелчков до порога +10%; дальше каждый щелчок сверяется с этим приростом. Не так — стоп.
+    Возвращает (щелчков, строка подсказки)."""
     keys = ("Здоровье", "Броня")
-    row = steady(h, x, y)
     if not row or any(not row.get(c) for c in keys):
         print(f"волна {k}: здоровье/броня не прочитаны — не кидаю", flush=True)
         return 0, row
+    with armed(h):  # режим бомбы и Shift — на всю волну: щелчок, подсказка, решение (Иван, 23.10)
+        return _to_limit(h, k, x, y, limit, row, keys)
+
+
+def _to_limit(h, k, x, y, limit, row, keys):
     first, way, cap, n = None, None, None, 0
     while max(row[c] for c in keys) <= limit:
         if cap is not None and n >= cap:
             print(f"волна {k}: {n} щелчков — предел по расчёту, порог не достигнут — стоп", flush=True)
             break
-        throw(h, [(x, y)])
+        hit(h, x, y)
         n += 1
         time.sleep(1.0)
         new = steady(h, x, y)
@@ -394,7 +413,7 @@ def _enrage(h, gems, opt):
             continue
         n = round(BOMBS / PER)
         if n > 0:
-            plan.append((k, x, y, n, b))
+            plan.append((k, x, y, n, row))
     capture.hover(h, *EMPTY)
     lim = opt["mode"] == "limit"
     src, want = ("61", opt["grade"]) if lim else ("1", 1)
@@ -405,18 +424,11 @@ def _enrage(h, gems, opt):
         focus(h)
         slot, empty = take(h, gems[src], want)  # внутри — проверка «Grade N Gem» до Tab
         try:
-            ok = []
-            for k, x, y, n, b in plan:  # сверка волны перед самым броском (Иван, 20.10)
-                k2, row = sure(h, x, y)
-                if (k2, row and row["Бомб"]) == (k, b):
-                    ok.append((k, x, y, n))
-                else:
-                    raise RuntimeError(f"волна {k}: перед броском прочитано {k2}, {row and row['Бомб']} — стоп")
-            plan = ok
+            # волны прочитаны один раз до камня — повторной сверки нет: лишнее дёргание (Иван, 23.10)
             if lim:
                 done = []
-                for k, x, y, n in plan:
-                    n, row = to_limit(h, k, x, y, opt["limit"])
+                for k, x, y, n, row in plan:
+                    n, row = to_limit(h, k, x, y, opt["limit"], row)
                     done.append((k, x, y, n))
                     with open(THROWN_LOG, "a", encoding="utf-8") as f:
                         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"
@@ -425,6 +437,7 @@ def _enrage(h, gems, opt):
                         raise RuntimeError(f"волна {k}: порог не достигнут за {n} щелчков — стоп")
                 plan = done
             else:
+                plan = [p[:4] for p in plan]
                 with open(THROWN_LOG, "a", encoding="utf-8") as f:
                     for k, x, y, n in plan:
                         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{PER}\n")

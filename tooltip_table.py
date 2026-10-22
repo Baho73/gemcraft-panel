@@ -35,6 +35,9 @@ def label(line, known):
     for h in heads:
         if (m := difflib.get_close_matches(h.strip().lower(), known, n=1, cutoff=0.5)):
             return m[0]
+        # «Hit 4.916 €40» — от подписи осталось первое слово (волна 266, 23.10)
+        if len(w := h.strip().lower()) >= 3 and len(m := [k for k in known if k.split()[0] == w]) == 1:
+            return m[0]
     return None
 
 
@@ -147,6 +150,8 @@ def self_check():
     assert r["Здоровье"] == 1.2e36 and isclose(r["Броня"], 9.991e73)  # число на своей строке
     _, _, g = parse(["Grade 49 Gem", "x", "mc:nca vatuæ 1.042 E18"])
     assert g["Стоимость маны"] == 1.042e18  # двоеточие внутри подписи
+    _, _, r = parse(["Wave 266", "999 PossessEd Giarts", "Hit 4.916 €40", "Armor IEVEI: 367,619"])
+    assert isclose(r["Здоровье"], 4.916e40) and r["Броня"] == 367619
     assert isclose(nums("2.319 F28")[0], 2.319e28) and isclose(nums("202 €29")[0], 2.02e29)  # 22.10
 
 
