@@ -495,6 +495,9 @@ def _enrage(h, gems, opt):
         b = row["Бомб"]
         if b > 0:  # бомбы в волне уже есть — не трогать, добрасывать нельзя (Иван, 21.10)
             continue
+        if opt["mode"] == "limit" and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]:
+            print(f"волна {k}: уже выше {opt['limit']:g} — не злю", flush=True)  # и паузы нет (Иван, 23.10)
+            continue
         n = round(BOMBS / PER)
         if n > 0:
             plan.append((k, x, y, n, row))
