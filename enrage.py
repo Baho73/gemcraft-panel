@@ -273,9 +273,15 @@ def grade(h, p):
         full, b = _tip(h, *p)
         if b:
             bx, by, bw, bh = b
-            m = re.search(r"Grade (\d+) Gem", " ".join(ocr(full[by:by + bh, bx:bx + bw])), re.I)  # OCR: «GradE 61 GEM»
-            if m:
-                return int(m.group(1))
+            crop = full[by:by + bh, bx:bx + bw]
+            for net in (True, False):  # сеть не уверена в «87» — «?»; Windows номер камня читает (23.10)
+                m = re.search(r"Grade (\d+) Gem", " ".join(ocr(crop, net=net)), re.I)  # OCR: «GradE 61 GEM»
+                if m:
+                    return int(m.group(1))
+    try:  # разобрать потом: подсказки не было или не прочиталась (23.10)
+        cv2.imwrite(str(HERE / "waves" / f"grade_fail_{time.strftime('%Y%m%d-%H%M%S')}.png"), full)
+    except Exception:
+        pass
     return None
 
 
