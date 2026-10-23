@@ -51,6 +51,8 @@ def loop(interval):
     import tkinter as tk
     cfg = json.loads(CFG.read_text(encoding="utf-8"))
     hwnd, grads = find_window(cfg["title"]), load_grad()
+    if ctypes.windll.user32.GetAsyncKeyState(0x10) & 0x8000:  # пульт убили посреди броска — Shift залип (ревью 1, №15)
+        ctypes.windll.user32.keybd_event(0x10, 0x2A, 2, 0)
     for d in (UNK, FRAMES, LIB, HERE / "waves"):  # waves — журналы волн (ревью 1, №18)
         d.mkdir(exist_ok=True)
     icons = cfg.get("icons", {})

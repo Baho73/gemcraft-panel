@@ -38,9 +38,26 @@ class Stopped(RuntimeError):
     pass
 
 
+GAME = None  # окно игры, пока идёт злость: клавиши и щелчки — только в него
+
+
+def foreground():
+    if GAME and win32gui.GetForegroundWindow() != GAME:
+        raise Stopped("активна не игра — клавиши и щелчки не шлю (ревью 1, №16)")
+
+
 def check():
     if STOP.is_set():
         raise Stopped("стоп пульта — злость прервана")
+    foreground()
+
+
+def press(vk, sc):
+    """Клавиша настоящим нажатием — только когда активна игра, иначе уйдёт в чужое окно (ревью 1, №16).
+    Без check(): нужна и для уборки после стопа."""
+    foreground()
+    ctypes.windll.user32.keybd_event(vk, sc, 0, 0)
+    ctypes.windll.user32.keybd_event(vk, sc, 2, 0)
 
 
 def snap(h, stop=True):
@@ -83,8 +100,7 @@ def _tip(h, x, y, away=True):
 
 def dot():
     """Клавиша «.» — в игре включает/выключает подсказки (Иван, 19.10). Игра должна быть активной."""
-    ctypes.windll.user32.keybd_event(0xBE, 0x34, 0, 0)
-    ctypes.windll.user32.keybd_event(0xBE, 0x34, 2, 0)
+    press(0xBE, 0x34)
     time.sleep(0.3)
 
 
@@ -173,8 +189,7 @@ def set_bomb(h, want):
     for _ in range(3):
         if bomb_on(snap(h, False)) == want:
             return True
-        ctypes.windll.user32.keybd_event(0x42, 0x30, 0, 0)
-        ctypes.windll.user32.keybd_event(0x42, 0x30, 2, 0)
+        press(0x42, 0x30)
         time.sleep(0.3)
     return bomb_on(snap(h, False)) == want
 
@@ -188,6 +203,7 @@ def armed(h):
     focus(h)
     if not set_bomb(h, True):
         raise RuntimeError("режим бомбы не включился")
+    foreground()
     kb(0x10, 0x2A, 0, 0)  # Shift вниз
     try:
         for _ in range(10):  # Иван: бросать, только когда кнопка жёлтая
@@ -273,8 +289,7 @@ def take(h, src, want=1):
     capture.real_hover(h, *src)
     time.sleep(0.3)
     before = inv(h)
-    ctypes.windll.user32.keybd_event(0x09, 0x0F, 0, 0)  # Tab
-    ctypes.windll.user32.keybd_event(0x09, 0x0F, 2, 0)
+    press(0x09, 0x0F)  # Tab
     time.sleep(0.4)
     diff = cv2.absdiff(before, inv(h)).max(axis=2) > 40
     ys, xs = diff.nonzero()
@@ -397,8 +412,7 @@ def throw_copy(h, src, points, want):
             time.sleep(0.3)
             sx, sy = SLOT
             before = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
-            ctypes.windll.user32.keybd_event(0x44, 0x20, 0, 0)  # D
-            ctypes.windll.user32.keybd_event(0x44, 0x20, 2, 0)
+            press(0x44, 0x20)  # D
             time.sleep(0.4)
             after = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
             if cv2.absdiff(before, after).mean() < 10:
@@ -422,10 +436,13 @@ def enrage_all():
     cfg = json.load(open(HERE / "digit_grab.json", encoding="utf-8"))
     h = capture.find_window(cfg["title"])
     was_fg = win32gui.GetForegroundWindow()
+    global GAME
     try:
         focus(h)
+        GAME = h
         _enrage(h, cfg.get("gems", {}), {**SETTINGS, **cfg.get("enrage", {})})
     finally:
+        GAME = None
         if was_fg and was_fg != h:
             try:
                 win32gui.SetForegroundWindow(was_fg)
