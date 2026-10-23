@@ -45,6 +45,20 @@ def game_state(full):
     return "pause" if p > r else "run"
 
 
+SPEED_X, SPEED_Y = (23, 42, 64, 90), 24  # центры кнопок «II ▷ ▷▷ ▷▷▷» в окне игры (снимок 23.10)
+
+
+def speed(full):
+    """Какая стрелка скорости горит жёлтым: 1, 2, 3; None — пауза или не видно. Нужна, чтобы снять паузу той же скоростью."""
+    hsv = cv2.cvtColor(full[12:34, 12:106], cv2.COLOR_BGR2HSV)
+    cols = ((hsv[:, :, 0] >= 18) & (hsv[:, :, 0] <= 40) & (hsv[:, :, 1] > 90) & (hsv[:, :, 2] > 120)).sum(axis=0)
+    cols[:25] = 0
+    if cols.sum() < 10:
+        return None
+    x = 12 + (cols * np.arange(len(cols))).sum() / cols.sum()
+    return min((1, 2, 3), key=lambda i: abs(SPEED_X[i] - x))
+
+
 def light_top(full, y0=44, x0=8, x1=30, run=20, need=15):
     """Строка, с которой сверху начинается светлый блок волны, или None.
     Светлая строка = серая без цвета (насыщенность < 12) и не чёрная (яркость > 30); медиана — цифры не мешают.

@@ -125,6 +125,6 @@ if __name__ == "__main__":
         check()
     elif a and a[0] == "space":  # проверка: через 3 с пробел в окно игры (успейте переключиться или нет)
         time.sleep(3)
-        PausePolicy.for_window(find_window(json.loads(CFG.read_text(encoding="utf-8"))["title"])).press()
+        PausePolicy.for_window(find_window(json.loads(CFG.read_text(encoding="utf-8"))["title"])).press("pause")
     else:
         loop(float(a[0]) if a else 0.1)  # 10 раз в секунду: круг ~40 мс (снимок 31, распознавание 5)

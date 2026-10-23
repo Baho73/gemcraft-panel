@@ -26,7 +26,7 @@ import cv2, numpy as np, win32gui
 
 from capture import find_window, grab
 from chain import Chain
-from detectors import FIELD, FREEZE_SAT, filled, freeze_level, game_state, icon_full, light_top, pluses, swirls, wave_blocks
+from detectors import FIELD, FREEZE_SAT, filled, freeze_level, game_state, icon_full, light_top, pluses, speed, swirls, wave_blocks
 from mana_ocr import load, load_grad, mana_text, number, read, recent, steady, surge
 from pause_policy import SPACE_WAIT, PausePolicy
 from tooltip_grab import TooltipGrab
@@ -345,7 +345,7 @@ def loop(interval):
         v.trace_add("write", save_macro)
     # START_BLOCK_CHAIN_WIRING
     # политика паузы — единственная, кто жмёт пробел; цепочка — свои шаги, пробелы через политику
-    policy = PausePolicy.for_window(hwnd, wait=secs(reply_var, SPACE_WAIT),
+    policy = PausePolicy.for_window(hwnd, speed=lambda: st.get("speed"), wait=secs(reply_var, SPACE_WAIT),
                                     log=lambda m: print(time.strftime("%H%M%S"), "ПАУЗА", m, flush=True))
 
     def mlog(text):
@@ -555,6 +555,8 @@ def loop(interval):
             st["diffs"] = (st["diffs"] + [float(np.abs(mp - st["map"]).mean())])[-10:]
         st["map"] = mp
         st["state"] = game_state(full)
+        if st["state"] == "run":
+            st["speed"] = speed(full) or st.get("speed")  # снимать паузу той же скоростью
         evs = policy.observe(game_now())  # снять ожидание отклика, выпустить отложенные события
         if evs:
             released(stamp, t, evs)
@@ -647,7 +649,7 @@ def loop(interval):
         if wave_ev(top is not None and wy is not None and top <= wy) and checks["wave"].get():
             cv2.imwrite(str(HERE / "waves" / f"{stamp}_pause_{top}.png"), full[0:612, 0:60])
             if (checks["enrage"].get() and not chain.on and not policy.hold and not policy.busy()
-                    and st.get("state") == "run" and t - st["start"] >= 1.0):
+                    and st.get("state") == "run" and t - st["start"] >= 5.0):  # 5 с: пульт ещё отодвигается с игры (23.10)
                 # своя пауза, как у цепочки: события на это время откладываются и дадут паузу после
                 policy.chain_begin()
                 policy.chain_space("pause")
@@ -660,7 +662,7 @@ def loop(interval):
         if (HERE / "enrage.flag").exists():  # Claude/Иван: злить сейчас, на текущей паузе
             (HERE / "enrage.flag").unlink()
             st["enrage_due"] = True
-        if (st.get("enrage_due") and not chain.on and not policy.hold and not policy.busy()
+        if (st.get("enrage_due") and t - st["start"] >= 5.0 and not chain.on and not policy.hold and not policy.busy()
                 and st.get("state") == "pause" and not st.get("enraging")):
             st["enrage_due"] = False
             policy.chain_begin()  # игра уже на паузе после цепочки — пробел не нужен

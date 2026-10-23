@@ -40,10 +40,13 @@ class PausePolicy:
         self.ensure = 0           # сколько ещё пробелов можно, чтобы довести игру до паузы после «Стоп пульта»
 
     @classmethod
-    def for_window(cls, hwnd, **kw):
-        """Политика, которая жмёт пробел в окно игры — единственное место, где пробел привязан к окну."""
-        from capture import press_space
-        return cls(press=lambda: press_space(hwnd), **kw)
+    def for_window(cls, hwnd, speed=lambda: 1, **kw):
+        """Политика, которая щёлкает кнопки «II» / «▷» в окне игры — единственное место, где пауза привязана к окну.
+        Иван 23.10: щелчок, а не пробел — кнопка не переключатель: прочитали состояние криво — щелчок паузы
+        игру не запустит (пробел на мнимое «run» запускал стоящую игру). speed — какую стрелку жать для «run»."""
+        from capture import real_click
+        from detectors import SPEED_X, SPEED_Y
+        return cls(press=lambda want: real_click(hwnd, SPEED_X[0 if want == "pause" else speed() or 1], SPEED_Y), **kw)
 
     # START_CONTRACT: request
     #   PURPOSE: Событие хочет поставить игру на паузу.
@@ -124,7 +127,7 @@ class PausePolicy:
         return self.awaiting is not None
 
     def _space(self, want, now):
-        self.press()
+        self.press(want)
         self.awaiting, self.sent_at = want, now
 
 
@@ -133,7 +136,7 @@ def self_check():
     """Сценарии политики на поддельных часах и поддельном пробеле — без окна."""
     clock = [0.0]
     spaces = []
-    p = PausePolicy(lambda: spaces.append(clock[0]), clock=lambda: clock[0], log=lambda *_: None)
+    p = PausePolicy(lambda *_: spaces.append(clock[0]), clock=lambda: clock[0], log=lambda *_: None)
 
     def tick(game, dt=0.1):
         clock[0] += dt
