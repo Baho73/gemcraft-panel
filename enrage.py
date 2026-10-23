@@ -120,7 +120,8 @@ def wave_info(h, x, y, away=True, bombs=True):
             cv2.imwrite(str(READS / name), rec["crop"])
             with open(HERE / "waves" / "reads.jsonl", "a", encoding="utf-8") as f:
                 f.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "img": name, "xy": [x, y], **CTX,
-                                    "k": k, "row": row, "lines": rec["lines"], "dim": rec.get("dim")},
+                                    "k": k, "row": row, "lines": rec["lines"], "dim": rec.get("dim"),
+                                    "alt": rec.get("alt"), "flags": rec.get("flags")},
                                    ensure_ascii=False, default=str) + "\n")
         except OSError:
             pass  # датасет — не повод срывать злость
@@ -137,9 +138,27 @@ def _wave_info(h, x, y, rec, away=True, bombs=True):
             dot()
             return None, None
     bx, by, bw, bh = b
-    lines = ocr(full[by:by + bh, bx:bx + bw])
-    rec["crop"], rec["lines"] = full[by:by + bh, bx:bx + bw], lines
+    crop = full[by:by + bh, bx:bx + bw]
+    lines, alt = ocr(crop), ocr(crop, net=False)  # два способа: сеть и Windows (Иван, 23.10: консенсус)
+    rec["crop"], rec["lines"], rec["alt"] = crop, lines, alt
     t, k, row = parse(lines)
+    flags = rec["flags"] = {}  # где способы не сошлись или видел один — разобрать потом (waves/reads.jsonl)
+    t2, k2, row2 = parse(alt)
+    if t != "wave" and t2 == "wave":
+        t, k, row = t2, k2, row2
+        flags["Волна"] = "только Windows"
+    elif t == "wave" and t2 == "wave":
+        if k2 != k:
+            flags["Волна"] = f"сеть {k}, Windows {k2}"
+        for c in ("Здоровье", "Броня"):
+            a, b = row.get(c), row2.get(c)
+            if a is None and b is not None:
+                row[c] = b
+                flags[c] = f"только Windows: {b}"
+            elif a is not None and b is None:
+                flags[c] = f"только сеть: {a}"
+            elif a is not None and abs(a - b) > 0.005 * max(abs(a), abs(b)):
+                flags[c] = f"сеть {a}, Windows {b}"  # верю сети: Windows путает точку и ε
     if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
         k, row = lines[0], {"spark": True}
     elif t != "wave":
@@ -154,6 +173,10 @@ def _wave_info(h, x, y, rec, away=True, bombs=True):
         k, row = int(m.group(1)), {}
     dim = rec["dim"] = ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+)(?: \S+)? bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
+    if not m:  # Windows число бомб не увидела — сеть
+        m = re.search(r"([\d,]+)(?: \S+)? bombs? dropped", " ".join(lines), re.I)
+        if m:
+            flags["Бомб"] = f"только сеть: {m.group(1)}"
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
     if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
         if bombs:
