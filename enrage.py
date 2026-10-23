@@ -17,7 +17,7 @@ import win32gui
 import capture
 from detectors import wave_blocks
 from tooltip_ocr import ocr, tooltip_box
-from tooltip_table import parse
+from tooltip_table import WAVE_NO, parse
 
 HERE = Path(__file__).parent
 EMPTY = (560, 480)  # точка без подсказки — увести курсор
@@ -26,8 +26,6 @@ BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
 PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
 SLOT = (1052, 467)
-# номер волны в заголовке: «Wave 302», «W CVE 302», «Wave 77 of 262» (в новой игре «of N» нет, 23.10)
-WAVE_NO = r"^\W*W\S*(?:\s+(?!of\b)\S{1,4})?\s+(\d+)(?: of \d+)?\s*$"
 # digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
 # пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
 SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)

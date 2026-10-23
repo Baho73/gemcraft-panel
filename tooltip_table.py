@@ -16,6 +16,8 @@ GEM = {"damage": "Урон от", "range": "Дальность", "mana value": "
        "hits": "Попадания"}
 WAVE = {"hit points": "Здоровье", "armor level": "Броня", "speed": "Скорость", "mana gain per kill": "Мана за убийство",
         "banishment mana cost": "Мана за изгнание", "xp gain per kill": "Опыт за убийство"}
+# заголовок волны: «Wave 302», «W CVE 405», «Wave 77 of 262» — OCR портит «Wave», в новой игре нет «of N» (23.10)
+WAVE_NO = r"^\W*W\S*(?:\s+(?!of\b)\S{1,4})?\s+(\d+)(?: of \d+)?\s*$"
 SUM = {"Урон от", "Урон до", "Стоимость маны", "Цена улучшения", "Высасывает маны за выстрел", "Попадания", "Убийства",
        "Выстрелов в секунду", "Количество"}
 
@@ -60,7 +62,7 @@ def glue(lines):
 def parse(lines):
     lines = glue(lines)
     head = lines[0] if lines else ""
-    if (m := re.match(r"Wave\s+(\d+)", head, re.I)):
+    if (m := re.search(WAVE_NO, head)):
         mob = re.match(r"\s*(\d[\d,]*)\s+(.*)", lines[1]) if len(lines) > 1 else None  # «999 Reavers»
         row = {"Волна": int(m[1]), "Количество": int(mob[1].replace(",", "")) if mob else None,
                "Монстры": mob[2] if mob else (lines[1] if len(lines) > 1 else "")}
@@ -152,6 +154,8 @@ def self_check():
     assert g["Стоимость маны"] == 1.042e18  # двоеточие внутри подписи
     _, _, r = parse(["Wave 266", "999 PossessEd Giarts", "Hit 4.916 €40", "Armor IEVEI: 367,619"])
     assert isclose(r["Здоровье"], 4.916e40) and r["Броня"] == 367619
+    _, k, r = parse(["W CVE 405", "78 PossessEd Swarmliitgs", "Hit poiNts:", "1.263 e41", "Armor IEVEI: 81,434"])
+    assert k == 405 and isclose(r["Здоровье"], 1.263e41) and r["Броня"] == 81434  # 23.10
     assert isclose(nums("2.319 F28")[0], 2.319e28) and isclose(nums("202 €29")[0], 2.02e29)  # 22.10
 
 
