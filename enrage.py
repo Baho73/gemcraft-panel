@@ -108,11 +108,11 @@ READS = HERE / "waves" / "reads"  # датасет для дообучения n
 CTX = {}  # где читали: обход волн или щелчок N по волне K — пишется рядом с чтением
 
 
-def wave_info(h, x, y, away=True):
+def wave_info(h, x, y, away=True, bombs=True):
     """Навести на блок волны и разобрать подсказку: (номер волны, {Здоровье, Бомб, ...}) или (None, None).
     Каждое чтение — в датасет: картинка подсказки в waves/reads/, строка в waves/reads.jsonl."""
     rec = {}
-    k, row = _wave_info(h, x, y, rec, away)
+    k, row = _wave_info(h, x, y, rec, away, bombs)
     if "crop" in rec:
         try:
             READS.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,7 @@ def wave_info(h, x, y, away=True):
     return k, row
 
 
-def _wave_info(h, x, y, rec, away=True):
+def _wave_info(h, x, y, rec, away=True, bombs=True):
     """Подсказки нет — нажать «.» (подсказки могли выключить) и проверить снова; не помогло — «.» назад."""
     full, b = _tip(h, x, y, away)
     if not b:
@@ -156,7 +156,10 @@ def _wave_info(h, x, y, rec, away=True):
     m = re.search(r"([\d,]+)(?: \S+)? bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
     if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
-        return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
+        if bombs:
+            return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
+        row["Бомб"] = None  # между щелчками бросок видно по росту здоровья и брони (волна 412: «60» Windows не увидела, 23.10)
+        return k, row
     row["Бомб"] = int(m.group(1).replace(",", "")) if m else 0
     return k, row
 
@@ -333,7 +336,7 @@ def steady(h, x, y, want, tries=6):
     Под точкой оказалась другая волна (полосу прокрутили) — None (ревью 1, №8)."""
     last = None
     for _ in range(tries):
-        k, row = wave_info(h, x, y, away=False)  # курсор стоит на волне — между щелчками не уводить
+        k, row = wave_info(h, x, y, away=False, bombs=False)  # курсор стоит на волне — между щелчками не уводить
         if row and k != want:
             print(f"под точкой волна {k}, а не {want}", flush=True)
             return None
@@ -369,7 +372,9 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         CTX.update(stage="щелчок", wave=k, click=n)
         time.sleep(1.0)
         new = steady(h, x, y, k)
-        if not new or any(not new.get(c) for c in keys) or new["Бомб"] <= row["Бомб"]:
+        thrown = (new["Бомб"] > row["Бомб"] if new and None not in (new["Бомб"], row["Бомб"])
+                  else new and any(new[c] > row[c] for c in keys if new.get(c)))
+        if not new or any(not new.get(c) for c in keys) or not thrown:
             print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
             break
         step = {c: (new[c] / row[c], new[c] - row[c]) for c in keys}
