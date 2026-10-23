@@ -40,19 +40,20 @@ def ocr(img, scale=3, net=True):
     res = asyncio.run(run())
     if not net or not numread.MODEL.exists():
         return [l.text for l in res.lines]
+    lines = [[(wd.text, *(v / scale for v in (wd.bounding_rect.x, wd.bounding_rect.y, wd.bounding_rect.width,
+                                               wd.bounding_rect.height))) for wd in l.words] for l in res.lines]
+    nums = [(li, n, numread.band(img, *n[3:])) for li, ws in enumerate(lines) for n in numread.numbers(ws)]
+    reads = iter(numread.read_many([g for *_, g in nums if g is not None]))  # все числа подсказки — одной пачкой
+    reads = [next(reads) if g is not None else ("", 0.0) for *_, g in nums]
+    words = [[t for t, *_ in ws] for ws in lines]
+    for (li, (i0, i1, t, *_), g), (s, cf) in reversed(list(zip(nums, reads))):
+        ok = cf >= numread.MIN_CONF and numread.VALID.fullmatch(s) and s.startswith("ε") == bool(re.match(r"\D", t))  # степень — с ε
+        words[li][i0:i1] = [s.replace("ε", "e") if ok else "?"]
     out = []
-    for l in res.lines:
-        ws = [(wd.text, *(v / scale for v in (wd.bounding_rect.x, wd.bounding_rect.y, wd.bounding_rect.width,
-                                               wd.bounding_rect.height))) for wd in l.words]
-        words = [t for t, *_ in ws]
-        for i0, i1, t, x, y, w, h in reversed(numread.numbers(ws)):
-            g = numread.band(img, x, y, w, h)
-            s, cf = numread.read(g) if g is not None else ("", 0.0)
-            ok = cf >= numread.MIN_CONF and numread.VALID.fullmatch(s) and s.startswith("ε") == bool(re.match(r"\D", t))  # степень — с ε
-            words[i0:i1] = [s.replace("ε", "e") if ok else "?"]
-        if "?" in words:  # одно число не прочитано — строка без чисел: «? e12» дала бы здоровье 12 (23.10)
-            words = [t for t in words if not re.fullmatch(r"[\d.,e]+|\?", t)] + ["?"]
-        out.append(" ".join(words))
+    for ws in words:
+        if "?" in ws:  # одно число не прочитано — строка без чисел: «? e12» дала бы здоровье 12 (23.10)
+            ws = [t for t in ws if not re.fullmatch(r"[\d.,e]+|\?", t)] + ["?"]
+        out.append(" ".join(ws))
     return out
 
 

@@ -64,41 +64,44 @@ def numbers(words, gap=4):
 
 
 def _conv(x, k, b):
-    """3x3, отступ 1: x C x H x W, k O x C x 3 x 3 -> O x H x W (im2col)."""
-    c, h, w = x.shape
-    p = np.pad(x, ((0, 0), (1, 1), (1, 1)))
-    cols = np.stack([p[:, i:i + h, j:j + w] for i in range(3) for j in range(3)], 1).reshape(c * 9, h * w)
-    return (k.reshape(len(k), -1) @ cols + b[:, None]).reshape(len(k), h, w)
+    """3x3, отступ 1: x B x C x H x W, k O x C x 3 x 3 -> B x O x H x W (im2col)."""
+    n, c, h, w = x.shape
+    p = np.pad(x, ((0, 0), (0, 0), (1, 1), (1, 1)))
+    cols = np.stack([p[:, :, i:i + h, j:j + w] for i in range(3) for j in range(3)], 2).reshape(n, c * 9, h * w)
+    return (k.reshape(len(k), -1) @ cols + b[:, None]).reshape(n, len(k), h, w)
 
 
 def _gru(xs, wi, wh, bi, bh):
+    """xs B x T x C -> B x T x hid (уравнения GRU torch: r, z, n)."""
     hid = wh.shape[1]
-    hs, h = [], np.zeros(hid, np.float32)
+    hs, h = [], np.zeros((len(xs), hid), np.float32)
     gi = xs @ wi.T + bi
-    for g in gi:
-        gh = wh @ h + bh
-        r = 1 / (1 + np.exp(-(g[:hid] + gh[:hid])))
-        z = 1 / (1 + np.exp(-(g[hid:2 * hid] + gh[hid:2 * hid])))
-        n = np.tanh(g[2 * hid:] + r * gh[2 * hid:])
+    for t in range(xs.shape[1]):
+        g, gh = gi[:, t], h @ wh.T + bh
+        r = 1 / (1 + np.exp(-(g[:, :hid] + gh[:, :hid])))
+        z = 1 / (1 + np.exp(-(g[:, hid:2 * hid] + gh[:, hid:2 * hid])))
+        n = np.tanh(g[:, 2 * hid:] + r * gh[:, 2 * hid:])
         h = (1 - z) * n + z * h
         hs.append(h)
-    return np.stack(hs)
+    return np.stack(hs, 1)
 
 
 def logits(x):
-    """x: H x W -> T x классов."""
+    """x: H x W или B x H x W -> T x классов (B x T x классов). Пачкой — в разы быстрее по одному."""
     global _w
     if _w is None:
         _w = dict(np.load(MODEL))
-    f = x[None]
+    one = x.ndim == 2
+    f = (x[None] if one else x)[:, None]
     for i, (ph, pw) in enumerate(POOLS):
         f = np.maximum(_conv(f, _w[f"k{i}"], _w[f"b{i}"]), 0)  # BatchNorm уже сложен в свёртку
-        c, h, w = f.shape
-        f = f.reshape(c, h // ph, ph, w // pw, pw).max((2, 4))
-    seq = f[:, 0, :].T  # T x C
+        n, c, h, w = f.shape
+        f = f.reshape(n, c, h // ph, ph, w // pw, pw).max((3, 5))
+    seq = f[:, :, 0, :].transpose(0, 2, 1)  # B x T x C
     fw = _gru(seq, _w["wi"], _w["wh"], _w["bi"], _w["bh"])
-    bw = _gru(seq[::-1], _w["wi_r"], _w["wh_r"], _w["bi_r"], _w["bh_r"])[::-1]
-    return np.concatenate([fw, bw], 1) @ _w["wo"].T + _w["bo"]
+    bw = _gru(seq[:, ::-1], _w["wi_r"], _w["wh_r"], _w["bi_r"], _w["bh_r"])[:, ::-1]
+    out = np.concatenate([fw, bw], 2) @ _w["wo"].T + _w["bo"]
+    return out[0] if one else out
 
 
 def decode(lg):
@@ -119,3 +122,8 @@ def decode(lg):
 def read(g):
     """Полоса числа (серое) -> (текст, уверенность)."""
     return decode(logits(prep(g)))
+
+
+def read_many(gs):
+    """Полосы чисел -> [(текст, уверенность)] одной пачкой."""
+    return [decode(lg) for lg in logits(np.stack([prep(g) for g in gs]))] if gs else []
