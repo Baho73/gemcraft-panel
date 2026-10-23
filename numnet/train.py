@@ -2,24 +2,18 @@
 Данные: numnet/data/crops.pkl — настоящие вырезки чисел (подписи Windows OCR, clean = число кусков совпало с длиной);
 numnet/data/samples.pkl — настоящие образцы символов для синтетики (склейка в случайные числа, подписи точные).
 Запуск (bash): cd "D:/Python/gems" && .venv-train/Scripts/python numnet/train.py [число_проб_optuna]"""
-import pickle, random, sys
+import pickle, random, re, sys
 from pathlib import Path
 
 import cv2, numpy as np, optuna, torch
 from torch import nn
 
 HERE = Path(__file__).parent
-ABC = "0123456789.,ε"  # класс 0 — пусто (CTC blank)
-H, W = 16, 96
+sys.path.insert(0, str(HERE.parent))
+import numread  # noqa: E402 — prep, алфавит и прямой проход на numpy для пульта
+from numread import ABC, H, W, prep  # noqa: E402
+
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def prep(g):
-    """Полоса числа (серое, 0-255) -> H x W, высота по H, ширина с сохранением пропорций, справа ноль."""
-    w = max(1, min(W, round(g.shape[1] * H / g.shape[0])))
-    out = np.zeros((H, W), np.float32)
-    out[:, :w] = cv2.resize(g, (w, H), interpolation=cv2.INTER_AREA) / 255.0
-    return out
 
 
 class Net(nn.Module):
@@ -90,7 +84,11 @@ def load():
     real = [(g, lab) for f, lab, clean, g in crops if clean]
     random.Random(0).shuffle(real)
     cut = len(real) // 5
-    return glyphs, real[cut:], real[:cut], [(g, lab) for f, lab, clean, g in crops if not clean]
+    # нечистые (запятая слиплась с цифрами — счёт кусков не сошёлся), но подпись по виду — число игры: длинные числа
+    # с запятыми только так и попадают в обучение (иначе «36,126,694» -> «336,126,694», 23.10). Проверка — на чистых
+    fmt = re.compile(r"\d{1,3}(,\d{3})+(\.\d)?|\d\.\d{1,3}|ε\d{1,3}|\d{1,6}(\.\d{1,2})?")
+    noisy = [(g, lab) for f, lab, clean, g in crops if not clean and fmt.fullmatch(lab)]
+    return glyphs, real[cut:] + noisy, real[:cut], [(g, lab) for f, lab, clean, g in crops if not clean]
 
 
 def batch(items):
@@ -132,6 +130,22 @@ def accuracy(net, items):
     return ok / len(items)
 
 
+def export(net):
+    """Веса для numread (numpy): BatchNorm сложить в свёртку."""
+    w, convs = {}, [m for m in net.cnn if isinstance(m, nn.Conv2d)]
+    bns = [m for m in net.cnn if isinstance(m, nn.BatchNorm2d)]
+    for i, (cv, bn) in enumerate(zip(convs, bns)):
+        sc = (bn.weight / torch.sqrt(bn.running_var + bn.eps)).detach()
+        w[f"k{i}"] = (cv.weight.detach() * sc[:, None, None, None]).numpy()
+        w[f"b{i}"] = ((cv.bias.detach() - bn.running_mean) * sc + bn.bias.detach()).numpy()
+    g = net.rnn
+    for suf, src in (("", "l0"), ("_r", "l0_reverse")):
+        w["wi" + suf], w["wh" + suf] = getattr(g, f"weight_ih_{src}").detach().numpy(), getattr(g, f"weight_hh_{src}").detach().numpy()
+        w["bi" + suf], w["bh" + suf] = getattr(g, f"bias_ih_{src}").detach().numpy(), getattr(g, f"bias_hh_{src}").detach().numpy()
+    w["wo"], w["bo"] = net.out.weight.detach().numpy(), net.out.bias.detach().numpy()
+    np.savez(HERE / "numnet.npz", **{k: v.astype(np.float32) for k, v in w.items()})
+
+
 def main(trials=30):
     data = load()
     print("train", len(data[1]), "val", len(data[2]), "noisy", len(data[3]), "glyph sizes", sorted(data[0]["2"]))
@@ -143,17 +157,27 @@ def main(trials=30):
                  bs=t.suggest_categorical("bs", [64, 128]), real=t.suggest_float("real", 0.0, 0.8))
         return accuracy(fit(p, data, 2500), data[2])
 
-    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=0))
-    study.optimize(objective, n_trials=trials)
-    best = study.best_params
-    print("best", study.best_value, best, flush=True)
+    if trials:
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=0))
+        study.optimize(objective, n_trials=trials)
+        best = study.best_params
+        print("best", study.best_value, best, flush=True)
+    else:  # 0 проб — параметры прошлого подбора
+        best = torch.load(HERE / "numnet.pt")["params"]
     net = fit(best, data, 8000, log=True)
     net.eval()
     print("val", accuracy(net, data[2]), "noisy agree", accuracy(net, data[3]))
     torch.save({"params": best, "state": net.state_dict()}, HERE / "numnet.pt")
-    torch.onnx.export(net.cpu(), torch.zeros(1, 1, H, W), HERE / "numnet.onnx", input_names=["x"],
-                      output_names=["logits"], dynamic_axes={"x": {0: "b"}, "logits": {0: "b"}}, dynamo=False)
-    print("saved", HERE / "numnet.onnx")
+    net = net.cpu().eval()  # accuracy() возвращает сеть в train — BatchNorm считал бы по пачке
+    export(net)
+    x = torch.tensor(np.stack([prep(g) for g, _ in data[2][:20]]))[:, None]
+    with torch.no_grad():
+        ref = net(x).numpy()
+    numread._w = None
+    err = max(float(np.abs(numread.logits(x[i, 0].numpy()) - ref[i]).max()) for i in range(len(x)))
+    print("numpy против torch, макс. расхождение логитов:", err)
+    assert err < 1e-3
+    print("saved", HERE / "numnet.npz")
 
 
 if __name__ == "__main__":
