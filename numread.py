@@ -80,6 +80,7 @@ def values(img, x0, y, h, gap=4):
     y1 = yc
     while y1 < bot and rows[y1]:
         y1 += 1
+    y1 = min(y1 + 2, len(rows))  # хвосты запятых ниже строки: у «Armor level:» нет букв с хвостом (волна 407, 23.10)
     line = br[y0:y1, int(x0):br.shape[1] - 4].astype(np.float32)  # у правого края — рамка подсказки
     if not line.size or line.max() < 60:
         return []
