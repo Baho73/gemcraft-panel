@@ -178,7 +178,8 @@ def _wave_info(h, x, y, rec, away=True, bombs=True):
         if m:
             flags["Бомб"] = f"только сеть: {m.group(1)}"
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
-    if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
+    # «dropp» только рядом с «bomb»: у искры «gems dropped increases shard storage» (строка 397, 23.10)
+    if not m and any("modif" in s.lower() or re.search(r"bomb.*dropp", s, re.I) for s in lines + dim):
         if bombs:
             return None, None  # волна уже злая, а число не прочитано: 0 по ошибке — лишние броски в 143 (20.10)
         row["Бомб"] = None  # между щелчками бросок видно по росту здоровья и брони (волна 412: «60» Windows не увидела, 23.10)
