@@ -47,15 +47,19 @@ def band(img, x, y, w, h):
 NUM_WORD = r"[\d.,]*\d[\d.,]*|\D\d{1,3}"  # число или степень («ε28», прочитанная как «F28», «€30»)
 
 
+EXP_WORD = r"[EeεF€][\dSOoIlZB]{1,3}"  # степень сразу после числа: Windows читает 5 как S, 0 как O
+
+
 def numbers(words, gap=4):
     """Слова строки Windows OCR [(текст, x, y, w, h)] -> [(i0, i1, текст, x, y, w, h)]: подряд идущие слова-числа
     с просветом меньше gap px склеены — Windows режет «36,126,694» на куски, а кусок с запасом ±2 px захватывал
     край соседней цифры («336126694», 23.10). Между числом и степенью — пробел ~5 px, их не склеивает."""
     out = []
     for i, (t, x, y, w, h) in enumerate(words):
-        if not re.fullmatch(NUM_WORD, t):
+        exp = out and out[-1][1] == i and re.fullmatch(EXP_WORD, t)  # «5.757 ESO» — степень с буквами (волна 428)
+        if not (re.fullmatch(NUM_WORD, t) or exp):
             continue
-        if out and out[-1][1] == i and x - (out[-1][3] + out[-1][5]) < gap and not re.fullmatch(r"\D\d{1,3}", t):
+        if out and out[-1][1] == i and x - (out[-1][3] + out[-1][5]) < gap and not re.fullmatch(r"\D\d{1,3}", t) and not exp:
             i0, _, t0, x0, y0, w0, h0 = out[-1]
             out[-1] = (i0, i + 1, t0 + t, x0, min(y0, y), x + w - x0, max(y0 + h0, y + h) - min(y0, y))
         else:
