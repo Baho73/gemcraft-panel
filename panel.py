@@ -358,11 +358,11 @@ def loop(interval):
                 root.after(delay, lambda d=delay: freeze_sample(f"через {d // 1000} с",
                                                                 st["frames"][-1][1] if st["frames"] else None))
 
-    def blocker():
+    def blocker(wave=True):
         """Иван: условие паузы держится сейчас — в конце цепочки паузу не снимать (иначе игру больше ничто не остановит).
         Только условия-состояния с включённой галочкой; плюс левого — повод цепочки, не блокер."""
         top, wy = st.get("wave_top"), wave_y()
-        if checks["wave"].get() and top is not None and wy is not None and top <= wy + WAVE_MARGIN:
+        if wave and checks["wave"].get() and top is not None and wy is not None and top <= wy + WAVE_MARGIN:
             # с запасом: волна ползёт ~1 строку за 2 с, на 63 при пороге 60 игра встала бы уже через 7 с (Иван, 7.10)
             return f"светлая волна у строки {wy} (с {top}, запас {WAVE_MARGIN})"
         if checks["mana_above"].get() and st["above_raw"]:
@@ -517,7 +517,7 @@ def loop(interval):
             return True
         st["enrage_job"] = None
         err = job.get("err")
-        why = None if err else "пульт на стопе" if policy.hold else blocker()
+        why = None if err else "пульт на стопе" if policy.hold else blocker(wave=False)  # Иван 23.10: волну разозлили — запускать дальше
         if err:
             print(stamp, "ЗЛОСТЬ: ошибка, игра оставлена на паузе:", err, flush=True)
         elif why:
