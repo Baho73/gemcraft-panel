@@ -28,7 +28,7 @@ PER = 250  # бомб за щелчок — стоит на кнопке Throw G
 SLOT = (1052, 467)
 # digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
 # пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
-SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
+SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69, "min_cap": 20}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
 STOP = threading.Event()  # «Стоп пульта»: злость идёт в своём потоке и проверяет флаг перед каждым действием
@@ -330,7 +330,7 @@ def steady(h, x, y, want, tries=6):
     return None
 
 
-def to_limit(h, k, x, y, limit, row):
+def to_limit(h, k, x, y, limit, row, min_cap=20):
     """Щелчок за щелчком в волну k, пока здоровье или броня не превысят limit (Иван, 22.10); row — подсказка
     из обхода волн до камня. Предохранитель: прирост от щелчка 1 и 2 должен совпасть (±10%) — по нему число
     щелчков до порога +10%; дальше каждый щелчок сверяется с этим приростом. Не так — стоп.
@@ -340,10 +340,10 @@ def to_limit(h, k, x, y, limit, row):
         print(f"волна {k}: здоровье/броня не прочитаны — не кидаю", flush=True)
         return 0, row
     with armed(h):  # режим бомбы и Shift — на всю волну: щелчок, подсказка, решение (Иван, 23.10)
-        return _to_limit(h, k, x, y, limit, row, keys)
+        return _to_limit(h, k, x, y, limit, row, keys, min_cap)
 
 
-def _to_limit(h, k, x, y, limit, row, keys):
+def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
     first, way, cap, n = None, None, None, 0
     while max(row[c] for c in keys) <= limit:
         if cap is not None and n >= cap:
@@ -376,7 +376,7 @@ def _to_limit(h, k, x, y, limit, row, keys):
                 break
             need = min(math.log(limit / row[c]) / math.log(first[c][0]) if way == "mult"
                        else (limit - row[c]) / first[c][1] for c in grow)
-            cap = n + math.ceil(max(need, 0) * 1.1) + 1
+            cap = max(min_cap, n + math.ceil(max(need, 0) * 1.1) + 1)  # не меньше настройки (Иван: минимум 20, 23.10)
             print(f"волна {k}: прирост {way}, до {limit:g} ещё ~{need:.1f} щелчков, предел {cap}", flush=True)
         elif not (mult if way == "mult" else add):
             print(f"волна {k}: щелчок {n} дал другой прирост {step} — стоп", flush=True)
@@ -490,7 +490,7 @@ def _enrage(h, gems, opt):
             if lim:
                 done = []
                 for k, x, y, n, row in plan:
-                    n, row = to_limit(h, k, x, y, opt["limit"], row)
+                    n, row = to_limit(h, k, x, y, opt["limit"], row, int(opt["min_cap"]))
                     done.append((k, x, y, n))
                     with open(THROWN_LOG, "a", encoding="utf-8") as f:
                         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"

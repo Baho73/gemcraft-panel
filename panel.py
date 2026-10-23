@@ -198,6 +198,27 @@ def loop(interval):
         gbtn[name] = tk.Button(erow, text=f"камень {name}: {p[0]},{p[1]}" if p else f"камень {name}: задать",
                                command=lambda n=name: gem_spot(n))
         gbtn[name].pack(side="left", padx=2)
+    # настройки злости на экране (Иван, 23.10); enrage_all перечитывает файл перед каждой злостью
+    eopt = {**enrage.SETTINGS, **cfg.setdefault("enrage", {})}
+    orow = tk.Frame(root)
+    orow.pack(fill="x", padx=8)
+    evars = {}
+    for key, text, width, cast in (("mode", "режим (limit / 1500)", 6, str), ("limit", "порог", 8, float),
+                                   ("grade", "уровень камня", 4, int), ("min_cap", "щелчков не меньше", 4, int)):
+        tk.Label(orow, text=text).pack(side="left")
+        evars[key] = tk.StringVar(value=f"{eopt[key]:g}" if key == "limit" else str(eopt[key]))
+        tk.Entry(orow, textvariable=evars[key], width=width).pack(side="left", padx=(2, 8))
+
+        def save_eopt(*_, key=key, cast=cast):
+            try:
+                v = cast(evars[key].get().strip())
+            except ValueError:
+                return  # недописанное число — не сохранять
+            if key == "mode" and v not in ("limit", "1500"):
+                return
+            cfg["enrage"][key] = v
+            CFG.write_text(json.dumps(cfg), encoding="utf-8")
+        evars[key].trace_add("write", save_eopt)
     blocks_now = tk.StringVar(value="")
     tk.Label(root, textvariable=blocks_now, anchor="w", fg="gray30").pack(fill="x", padx=8)
     srow = tk.Frame(root)
