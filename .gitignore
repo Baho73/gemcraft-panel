@@ -29,3 +29,5 @@ tooltips.xlsx
 amp/
 .review-loop.log
 .review-loop.state.json
+.venv-train/
+numnet/data/
