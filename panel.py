@@ -483,6 +483,12 @@ def loop(interval):
     def step():
         """Один кадр. Любая ошибка внутри не должна останавливать опрос (так 6.10 в 01:29 встало всё: паузы,
         цепочка) — пишем её и продолжаем со следующего кадра."""
+        flag = HERE / "restart.flag"  # Claude просит закрыться для перезапуска (Иван, 23.10) — только между делами
+        if flag.exists() and st.get("enrage_job") is None and not st.get("enrage_due") and not chain.on:
+            flag.unlink()
+            print(time.strftime("%H%M%S"), "ПУЛЬТ: закрываюсь по restart.flag", flush=True)
+            root.destroy()
+            return
         try:
             step_inner()
         except Exception as e:

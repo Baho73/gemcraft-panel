@@ -31,3 +31,4 @@ amp/
 .review-loop.state.json
 .venv-train/
 numnet/data/
+restart.flag
