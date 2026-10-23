@@ -657,6 +657,9 @@ def loop(interval):
                 if checks["enrage"].get() and chain.on:  # волна дошла во время цепочки — злить после неё (21.10)
                     st["enrage_due"] = True
                 event(stamp, t, f"светлая волна выше строки {wy} (с {top})", "wave", top)
+        if (HERE / "enrage.flag").exists():  # Claude/Иван: злить сейчас, на текущей паузе
+            (HERE / "enrage.flag").unlink()
+            st["enrage_due"] = True
         if (st.get("enrage_due") and not chain.on and not policy.hold and not policy.busy()
                 and st.get("state") == "pause" and not st.get("enraging")):
             st["enrage_due"] = False

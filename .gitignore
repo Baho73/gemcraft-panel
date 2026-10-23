@@ -32,3 +32,4 @@ amp/
 .venv-train/
 numnet/data/
 restart.flag
+enrage.flag
