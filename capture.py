@@ -15,7 +15,7 @@
 #   click - щелчок сообщением в точку окна
 #   real_click - щелчок настоящим курсором с возвратом курсора и фокуса
 # END_MODULE_MAP
-import ctypes, sys, time
+import ctypes, sys, threading, time
 
 import cv2, numpy as np, win32gui, win32ui
 
@@ -36,7 +36,15 @@ def find_window(part):
     return (exact or found)[0]
 
 
+GRAB_LOCK = threading.Lock()  # win32ui (MFC) не для двух потоков: пульт и злость снимали разом — «CreateCompatibleDC failed» (23.10)
+
+
 def grab(hwnd, roi=None, color=False, screen=False):
+    with GRAB_LOCK:
+        return _grab(hwnd, roi, color, screen)
+
+
+def _grab(hwnd, roi=None, color=False, screen=False):
     # PrintWindow: окно рисует себя в память, поэтому его можно перекрыть другими окнами; свёрнутое — нельзя.
     # screen=True — копия с экрана (BitBlt): 54 мс против 5 с у PrintWindow на тяжёлой игре (11.10) и игру не грузит,
     # но окно игры ничто не должно перекрывать
