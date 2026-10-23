@@ -42,13 +42,27 @@ def ocr(img, scale=3, net=True):
         return [l.text for l in res.lines]
     lines = [[(wd.text, *(v / scale for v in (wd.bounding_rect.x, wd.bounding_rect.y, wd.bounding_rect.width,
                                                wd.bounding_rect.height))) for wd in l.words] for l in res.lines]
-    nums = [(li, n, numread.band(img, *n[3:])) for li, ws in enumerate(lines) for n in numread.numbers(ws)]
-    reads = iter(numread.read_many([g for *_, g in nums if g is not None]))  # все числа подсказки — одной пачкой
-    reads = [next(reads) if g is not None else ("", 0.0) for *_, g in nums]
     words = [[t for t, *_ in ws] for ws in lines]
-    for (li, (i0, i1, t, *_), g), (s, cf) in reversed(list(zip(nums, reads))):
+    # строка с подписью «...:» — числа справа режем сами по просветам: Windows фиолетовые числа не видит (23.10)
+    colon = {li: next((i for i, (t, *_) in enumerate(ws) if t.endswith(":")), None) for li, ws in enumerate(lines)}
+    vals = {li: numread.values(img, x + w + 1, y, h) for li, ci in colon.items() if ci is not None
+            for _, x, y, w, h in [lines[li][ci]]}
+    nums = [(li, n, numread.band(img, *n[3:])) for li, ws in enumerate(lines) if colon[li] is None
+            for n in numread.numbers(ws)]
+    crops = [g for *_, g in nums if g is not None] + [g for gs in vals.values() for g in gs]
+    reads = iter(numread.read_many(crops))  # все числа подсказки — одной пачкой
+    num_reads = [next(reads) if g is not None else ("", 0.0) for *_, g in nums]
+    for (li, (i0, i1, t, *_), g), (s, cf) in reversed(list(zip(nums, num_reads))):
         ok = cf >= numread.MIN_CONF and numread.VALID.fullmatch(s) and s.startswith("ε") == bool(re.match(r"\D", t))  # степень — с ε
         words[li][i0:i1] = [s.replace("ε", "e") if ok else "?"]
+    for li, gs in vals.items():
+        got = []
+        for j in range(len(gs)):
+            s, cf = next(reads)
+            # первое — число, дальше может идти степень (ε…); слова после чисел («hp to all») сеть не узнает — «?»
+            ok = cf >= numread.MIN_CONF and numread.VALID.fullmatch(s) and s.startswith("ε") == (j > 0)
+            got.append(s.replace("ε", "e") if ok else "?")
+        words[li] = words[li][:colon[li] + 1] + (got or ["?"])
     out = []
     for ws in words:
         if "?" in ws:  # одно число не прочитано — строка без чисел: «? e12» дала бы здоровье 12 (23.10)

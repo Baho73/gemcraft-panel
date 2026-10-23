@@ -42,17 +42,31 @@ def segs(on):
 
 def main():
     crops, samples = [], collections.defaultdict(list)
-    for f in sorted(glob.glob(str(Path(__file__).parent.parent / "tooltips" / "*_0_*.png"))):
+    for f in sorted(glob.glob(str(Path(__file__).parent.parent / "tooltips" / "*_0_*.png"))
+                    + glob.glob(str(Path(__file__).parent.parent / "waves" / "reads" / "*.png"))):
         c = cv2.imread(f)
         for line in words(c):
-            for i0, i1, text, x, y, w, h in numread.numbers(line):
-                exp = re.fullmatch(r"\D\d{1,3}", text)
-                if exp and not (i0 and re.fullmatch(r"[\d.,]*\d[\d.,]*", line[i0 - 1][0])):
-                    continue  # степень — только сразу после числа
-                lab = "ε" + text[1:] if exp else text
-                g = numread.band(c, x, y, w, h)
-                if g is None:
+            ci = next((i for i, w in enumerate(line) if w[0].endswith(":")), None)
+            nums = numread.numbers(line)
+            if ci is not None:  # значение справа от подписи — режется так же, как при чтении (numread.values)
+                t, x, y, w, h = line[ci]
+                labs = [n[2] for n in nums if n[0] > ci][:2]
+                gs = numread.values(c, x + w + 1, y, h)
+                if len(gs) != len(labs):
                     continue
+                items = [("ε" + t[1:] if j else t, g) for j, (t, g) in enumerate(zip(labs, gs))]
+                if any(j and not re.fullmatch(r"\D\d{1,3}", labs[j]) for j in range(len(labs))):
+                    continue  # второе — только степень
+            else:
+                items = []
+                for i0, i1, text, x, y, w, h in nums:
+                    exp = re.fullmatch(r"\D\d{1,3}", text)
+                    if exp and not (i0 and re.fullmatch(r"[\d.,]*\d[\d.,]*", line[i0 - 1][0])):
+                        continue  # степень — только сразу после числа
+                    g = numread.band(c, x, y, w, h)
+                    if g is not None:
+                        items.append(("ε" + text[1:] if exp else text, g))
+            for lab, g in items:
                 on = g >= 115
                 sg = [s for s in segs(on) if on[:, s[0]:s[1]].sum() >= 2]
                 clean = len(sg) == len(lab)

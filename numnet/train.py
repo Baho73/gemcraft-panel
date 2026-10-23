@@ -74,10 +74,10 @@ def synth(glyphs, rng):
 
 
 def load():
-    crops = pickle.load(open(HERE / "data" / "crops.pkl", "rb"))
+    crops = [c for c in pickle.load(open(HERE / "data" / "crops.pkl", "rb")) if c[1] and set(c[1]) <= set(ABC)]
     samples = pickle.load(open(HERE / "data" / "samples.pkl", "rb"))
     glyphs = {}
-    for ch, lst in samples.items():
+    for ch, lst in ((k, v) for k, v in samples.items() if k in ABC):
         for hgt, g in lst:
             if g.max() > 80 and g.shape[1] >= 2:
                 glyphs.setdefault(ch, {}).setdefault(hgt, []).append(g)

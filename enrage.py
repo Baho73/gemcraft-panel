@@ -59,11 +59,13 @@ def mouse(h, x, y, flags):
     u.mouse_event(0x0001 | 0x8000 | 0x4000 | flags, (sx - vx) * 65535 // (vw - 1), (sy - vy) * 65535 // (vh - 1), 0, 0)
 
 
-def _tip(h, x, y):
+def _tip(h, x, y, away=True):
+    """away=False — курсор уже стоит на волне: не уводить, подсказка после щелчка обновляется на месте (Иван, 23.10)."""
     check()
     # настоящий курсор: наведение сообщением перебивает живая мышь над игрой — пустые чтения (21.10)
-    capture.real_hover(h, *EMPTY)
-    time.sleep(0.4)
+    if away:
+        capture.real_hover(h, *EMPTY)
+        time.sleep(0.4)
     capture.real_hover(h, x, y)
     # подсказка появляется с задержкой: 0.6 с не хватало — все чтения пустые (Иван, 16:27 21.10)
     end = time.time() + 2.5
@@ -90,11 +92,11 @@ READS = HERE / "waves" / "reads"  # датасет для дообучения n
 CTX = {}  # где читали: обход волн или щелчок N по волне K — пишется рядом с чтением
 
 
-def wave_info(h, x, y):
+def wave_info(h, x, y, away=True):
     """Навести на блок волны и разобрать подсказку: (номер волны, {Здоровье, Бомб, ...}) или (None, None).
     Каждое чтение — в датасет: картинка подсказки в waves/reads/, строка в waves/reads.jsonl."""
     rec = {}
-    k, row = _wave_info(h, x, y, rec)
+    k, row = _wave_info(h, x, y, rec, away)
     if "crop" in rec:
         try:
             READS.mkdir(parents=True, exist_ok=True)
@@ -109,12 +111,12 @@ def wave_info(h, x, y):
     return k, row
 
 
-def _wave_info(h, x, y, rec):
+def _wave_info(h, x, y, rec, away=True):
     """Подсказки нет — нажать «.» (подсказки могли выключить) и проверить снова; не помогло — «.» назад."""
-    full, b = _tip(h, x, y)
+    full, b = _tip(h, x, y, away)
     if not b:
         dot()
-        full, b = _tip(h, x, y)
+        full, b = _tip(h, x, y, away)
         if not b:
             dot()
             return None, None
@@ -316,7 +318,7 @@ def steady(h, x, y, want, tries=6):
     Под точкой оказалась другая волна (полосу прокрутили) — None (ревью 1, №8)."""
     last = None
     for _ in range(tries):
-        k, row = wave_info(h, x, y)
+        k, row = wave_info(h, x, y, away=False)  # курсор стоит на волне — между щелчками не уводить
         if row and k != want:
             print(f"под точкой волна {k}, а не {want}", flush=True)
             return None

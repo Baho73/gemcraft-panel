@@ -63,6 +63,45 @@ def numbers(words, gap=4):
     return out
 
 
+def values(img, x0, y, h, gap=4):
+    """Числа справа от подписи «Hit points:» (x0 — конец двоеточия; y, h — рамка подписи): полоса строки,
+    ink по яркости (цвет любой: жёлтый, фиолетовый у злой волны, белый), куски через просвет >= gap px — отдельные
+    числа («9.900» и «ε44»). Windows фиолетовые числа частично не видит вовсе (волна 406, 23.10)."""
+    br = img.max(2) if img.ndim == 3 else img
+    lab = band(br, x0 - 30, y, 30, h)  # высота строки — по самой подписи: справа строки касаются соседних
+    if lab is None:
+        return []
+    rows = (br[:, max(int(x0) - 30, 0):int(x0)] > 60).sum(1)
+    yc = int(y + h / 2)
+    top, bot = max(int(y) - 3, 0), min(int(y + h) + 4, len(rows))
+    y0 = yc
+    while y0 > top and rows[y0 - 1]:
+        y0 -= 1
+    y1 = yc
+    while y1 < bot and rows[y1]:
+        y1 += 1
+    line = br[y0:y1, int(x0):br.shape[1] - 4].astype(np.float32)  # у правого края — рамка подсказки
+    if not line.size or line.max() < 60:
+        return []
+    on = line >= line.max() * 0.45
+    xs = np.nonzero(on.sum(0))[0]
+    out, a, end = [], None, 0
+    for i, x in enumerate(xs):
+        a = x if a is None else a
+        if i + 1 == len(xs) or xs[i + 1] - x > gap:
+            ink = on[:, a:x + 1]
+            if ink.sum() >= 8 and ink.any(1).sum() >= 4:  # точка-искорка под числом — не символ
+                if a - end > (15 if not out else 12):  # число — у двоеточия, степень — у числа; дальше чужое
+                    break
+                g = line[:, max(a - 2, 0):x + 3]
+                out.append((g / g.max() * 255).astype(np.uint8))
+                end = x
+            a = None
+        if len(out) == 2:  # число и, может быть, степень; дальше — не значение
+            break
+    return out
+
+
 def _conv(x, k, b):
     """3x3, отступ 1: x B x C x H x W, k O x C x 3 x 3 -> B x O x H x W (im2col)."""
     n, c, h, w = x.shape
