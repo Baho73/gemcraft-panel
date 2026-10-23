@@ -159,11 +159,22 @@ def decode(lg):
     return "".join(s), min(conf, default=1.0)
 
 
+def commas(s):
+    """Целое, где сеть потеряла запятую, а остальные стоят на своих местах: «2226,085» -> «2,226,085» (волна 424, 23.10).
+    Запятая не на своём месте («991,9903» — потеряна точка) — как есть: VALID не примет."""
+    if not re.fullmatch(r"\d[\d,]*\d", s) or "," not in s:
+        return s
+    good = f"{int(s.replace(',', '')):,}"
+    at = lambda t: {len(t) - i for i, c in enumerate(t) if c == ","}  # места запятых, считая справа
+    return good if at(s) <= at(good) else s
+
+
 def read(g):
     """Полоса числа (серое) -> (текст, уверенность)."""
-    return decode(logits(prep(g)))
+    s, cf = decode(logits(prep(g)))
+    return commas(s), cf
 
 
 def read_many(gs):
     """Полосы чисел -> [(текст, уверенность)] одной пачкой."""
-    return [decode(lg) for lg in logits(np.stack([prep(g) for g in gs]))] if gs else []
+    return [(commas(s), cf) for s, cf in map(decode, logits(np.stack([prep(g) for g in gs])))] if gs else []
