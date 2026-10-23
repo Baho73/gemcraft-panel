@@ -61,6 +61,10 @@ def glue(lines):
 
 def parse(lines):
     lines = glue(lines)
+    for i in (1, 2):  # слово из нижней строки встало первым: «Drops», «Wave 415» (23.10)
+        if len(lines) > i and not re.search(WAVE_NO, lines[0]) and re.search(WAVE_NO, lines[i]):
+            lines = lines[i:]
+            break
     head = lines[0] if lines else ""
     if (m := re.search(WAVE_NO, head)):
         mob = re.match(r"\s*(\d[\d,]*)\s+(.*)", lines[1]) if len(lines) > 1 else None  # «999 Reavers»
