@@ -86,9 +86,31 @@ def dot():
     time.sleep(0.3)
 
 
+READS = HERE / "waves" / "reads"  # датасет для дообучения numnet: каждое чтение подсказки волны (Иван, 23.10)
+CTX = {}  # где читали: обход волн или щелчок N по волне K — пишется рядом с чтением
+
+
 def wave_info(h, x, y):
     """Навести на блок волны и разобрать подсказку: (номер волны, {Здоровье, Бомб, ...}) или (None, None).
-    Подсказки нет — нажать «.» (подсказки могли выключить) и проверить снова; не помогло — «.» назад."""
+    Каждое чтение — в датасет: картинка подсказки в waves/reads/, строка в waves/reads.jsonl."""
+    rec = {}
+    k, row = _wave_info(h, x, y, rec)
+    if "crop" in rec:
+        try:
+            READS.mkdir(parents=True, exist_ok=True)
+            name = time.strftime("%Y%m%d-%H%M%S") + f"_{int(time.time() * 1000) % 1000:03d}.png"
+            cv2.imwrite(str(READS / name), rec["crop"])
+            with open(HERE / "waves" / "reads.jsonl", "a", encoding="utf-8") as f:
+                f.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "img": name, "xy": [x, y], **CTX,
+                                    "k": k, "row": row, "lines": rec["lines"], "dim": rec.get("dim")},
+                                   ensure_ascii=False, default=str) + "\n")
+        except OSError:
+            pass  # датасет — не повод срывать злость
+    return k, row
+
+
+def _wave_info(h, x, y, rec):
+    """Подсказки нет — нажать «.» (подсказки могли выключить) и проверить снова; не помогло — «.» назад."""
     full, b = _tip(h, x, y)
     if not b:
         dot()
@@ -98,6 +120,7 @@ def wave_info(h, x, y):
             return None, None
     bx, by, bw, bh = b
     lines = ocr(full[by:by + bh, bx:bx + bw])
+    rec["crop"], rec["lines"] = full[by:by + bh, bx:bx + bw], lines
     t, k, row = parse(lines)
     if any("Spark" in s for s in lines[:3]):  # маленький блок — искра: «Drop gem bomb to heat spark» (20.10)
         k, row = lines[0], {"spark": True}
@@ -111,7 +134,7 @@ def wave_info(h, x, y):
         if not m:
             return None, None
         k, row = int(m.group(1)), {}
-    dim =ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
+    dim = rec["dim"] = ocr(cv2.convertScaleAbs(full[by:by + bh, bx:bx + bw], alpha=1.5))  # число бомб тусклое — без осветления теряется
     m = re.search(r"([\d,]+)(?: \S+)? bombs? dropped", " ".join(dim), re.I)  # OCR: «6 gent bombs droppEd» (22.10)
     # злая волна — с «Rage modifiers» и «N gem bombs dropped»; высота не признак: чистая со свойствами — 324 (21.10)
     if not m and any("modif" in s.lower() or "dropp" in s.lower() for s in lines + dim):
@@ -326,6 +349,7 @@ def _to_limit(h, k, x, y, limit, row, keys):
             break
         hit(h, x, y)
         n += 1
+        CTX.update(stage="щелчок", wave=k, click=n)
         time.sleep(1.0)
         new = steady(h, x, y, k)
         if not new or any(not new.get(c) for c in keys) or new["Бомб"] <= row["Бомб"]:
@@ -432,6 +456,8 @@ def _enrage(h, gems, opt):
     focus(h)  # подсказки игра показывает только активной: без этого все чтения пустые (19:58, 20.10)
     set_bomb(h, False)  # в режиме бомбы подсказок над волнами нет — все чтения пустые (13:36, 21.10)
     for top, bot, (x, y), kind, light in wave_blocks(snap(h)):
+        CTX.clear()
+        CTX["stage"] = "обход"
         k, row = sure(h, x, y)  # вид решает подсказка: у края полосы искра тоже «обрез» (Иван, 20.10)
         if not row:
             raise RuntimeError(f"строка {y}: подсказка не прочиталась — стоп")
