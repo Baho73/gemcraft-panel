@@ -22,6 +22,12 @@ import json, sys, time
 
 import cv2, numpy as np
 
+# Иван 24.10: при открытом пульте тормозит терминал чата — не занимать все ядра и уступать другим окнам
+cv2.setNumThreads(1)
+if sys.platform == "win32":
+    import ctypes
+    ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x4000)  # BELOW_NORMAL
+
 from capture import find_window, grab
 from detectors import filled, wave_blocks
 from mana_ocr import flat, load, load_grad, mana_text, number, read, steady, surge
