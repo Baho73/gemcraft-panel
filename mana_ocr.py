@@ -83,14 +83,14 @@ def grad(gray, r=2, dark=60):
 
 def load_grad():
     # маски цифр по перепадам яркости, имя: <код>_<h>x<w>.png
-    return [(chr(int(p.stem.split("_")[0])), cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)) for p in GRAD.glob("*.png")]
+    return [(chr(int(p.stem.split("_")[0])), cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)) for p in GRAD.glob("[0-9]*.png")]
 
 
 def load():
     # имя файла: коды символов через '-', напр. 44_3.png = «,». Незнакомые из UNK масками НЕ служат:
     # обрывок «e» из пятна перебивал настоящую «e», и «3.700e37» читалось как «3.700??37»
     tpls = [("".join(chr(int(c)) for c in p.stem.split("_")[0].split("-")),
-             cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)) for p in TPL.glob("*.png")]
+             cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)) for p in TPL.glob("[0-9]*.png")]
     return [(lab, t) for lab, t in tpls if t is not None]  # файл могли перенести во время чтения (разметка на лету)
 
 
