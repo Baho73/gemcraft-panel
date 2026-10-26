@@ -53,8 +53,10 @@ def glue(lines):
     """OCR переносит число на свою строку («Armor IEVEI:» / «9.991 €73») — приклеить к подписи."""
     out = []
     for l in lines:
-        if out and re.fullmatch(r"[\d,.\s€eEF+]+", l) and (out[-1].rstrip().endswith(":") or not re.search(r"\d", out[-1])):
-            # подпись без двоеточия и цифр: «Hit» / «6.991 e60» (волна 448, 23.10)
+        if out and re.fullmatch(r"[\d,.\s€eEF+]+", l) and (out[-1].rstrip().endswith(":") or not re.search(r"\d", out[-1])
+                                                            and not l.startswith("+")):
+            # подпись без двоеточия и цифр: «Hit» / «6.991 e60» (волна 448, 23.10); но «extra armor» / «+8,783,901,443.8»
+            # — число следующей строки-модификатора, не броня (волна 159, 26.10)
             out[-1] += " " + l
         else:
             out.append(l)
@@ -156,6 +158,9 @@ def self_check():
     assert r["Количество"] == 999 and r["Монстры"] == "Giamts"
     _, _, r448 = parse(["W CVE 448", "999 PossessEd Giarts", "Hit", "6.991 e60", "Armor IEVEI: 95,006,458"])
     assert isclose(r448["Здоровье"], 6.991e60) and r448["Броня"] == 95006458
+    _, _, r159 = parse(["Wave 159", "999 Possss€d Reavers", "Hit poiNts: 7,434 e39", "Armor IEVEI: ?", "+10,800",
+                        "extra armor", "+8,783,901,443.8", "hp/miN extra rcgcucrcltiou"])
+    assert r159.get("Броня") is None  # сеть не прочла броню — не брать число регенерации
     _, _, r = parse(["Wave 26 of 67", "999 Marked RECVErs", "Hit poixts: 1.2E36", "Armor IEVEI:", "9.991 €73"])
     assert r["Здоровье"] == 1.2e36 and isclose(r["Броня"], 9.991e73)  # число на своей строке
     _, _, g = parse(["Grade 49 Gem", "x", "mc:nca vatuæ 1.042 E18"])
