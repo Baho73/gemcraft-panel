@@ -422,10 +422,16 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         new = steady(h, x, y, k, ok=way and (lambda r, prev=row: same_step(first, prev, r, way)))
         # «126» бомб читалось как «16» (волны 153, 155, 26.10) — рост здоровья/брони тоже считается броском
         thrown = new and ((None not in (new["Бомб"], row["Бомб"]) and new["Бомб"] > row["Бомб"])
-                          or any(new[c] > row[c] for c in keys if new.get(c)))
-        if not new or any(not new.get(c) for c in keys) or not thrown:
+                          or any(new[c] > row[c] for c in keys if new.get(c) and row.get(c)))
+        if not new or not new.get("Здоровье") or not thrown:
             print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
             break
+        if not new.get("Броня"):  # броня не прочиталась — идти по здоровью, броню досчитать по приросту (26.10)
+            if not (way and row.get("Броня") and same_step({"Здоровье": first["Здоровье"]}, row, new, way)):
+                print(f"волна {k}: после щелчка {n} броня не прочитана — стоп", flush=True)
+                break
+            new = {**new, "Броня": row["Броня"] * first["Броня"][0] if way == "mult" else row["Броня"] + first["Броня"][1]}
+            print(f"волна {k}: щелчок {n} — броня не прочитана, по приросту ~{new['Броня']:g}", flush=True)
         step = {c: (new[c] / row[c], new[c] - row[c]) for c in keys}
         row = new
         if first is None:

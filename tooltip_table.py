@@ -26,8 +26,9 @@ def nums(s):
     s = re.sub(r"(?<![A-Za-z])O(?![A-Za-z])", "0", s)  # «Hits: O» — ноль, прочитанный буквой
     # перед степенью игра пишет d.ddd: точка потеряна («202 €29», волна 266) или прочитана запятой («6,446 e42»,
     # волна 429, 23.10) — точка после первой цифры
+    # игра делит тысячи запятыми: «159359270» без запятых — Windows прочёл запятую цифрой («15,359,270», волна 174, 26.10)
     return [float((d := re.sub(r"[.,]", "", a))[0] + "." + d[1:] if e else a.replace(",", ""))
-            * 10 ** int(e or 0) for a, e in re.findall(NUM, s)]
+            * 10 ** int(e or 0) for a, e in re.findall(NUM, s) if e or not re.fullmatch(r"\d{5,}", a)]
 
 
 def label(line, known):
@@ -161,6 +162,7 @@ def self_check():
     _, _, r159 = parse(["Wave 159", "999 Possss€d Reavers", "Hit poiNts: 7,434 e39", "Armor IEVEI: ?", "+10,800",
                         "extra armor", "+8,783,901,443.8", "hp/miN extra rcgcucrcltiou"])
     assert r159.get("Броня") is None  # сеть не прочла броню — не брать число регенерации
+    assert nums("Armor IEVEI: 159359270") == [] and nums("15,359,270") == [15359270]  # запятая, прочитанная цифрой
     _, _, r = parse(["Wave 26 of 67", "999 Marked RECVErs", "Hit poixts: 1.2E36", "Armor IEVEI:", "9.991 €73"])
     assert r["Здоровье"] == 1.2e36 and isclose(r["Броня"], 9.991e73)  # число на своей строке
     _, _, g = parse(["Grade 49 Gem", "x", "mc:nca vatuæ 1.042 E18"])
