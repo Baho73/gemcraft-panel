@@ -361,8 +361,9 @@ def drag(h, a, b):
     time.sleep(0.3)
 
 
-def steady(h, x, y, want, tries=6):
+def steady(h, x, y, want, tries=6, ok=None):
     """Подсказка волны want, пока два чтения подряд не совпадут по бомбам, здоровью и броне: бомбы падают не сразу.
+    ok(row) — чтение сошлось с ожидаемым приростом: второе чтение не нужно (Иван, 26.10).
     Под точкой оказалась другая волна (полосу прокрутили) — None (ревью 1, №8)."""
     last = None
     for _ in range(tries):
@@ -371,10 +372,10 @@ def steady(h, x, y, want, tries=6):
             print(f"под точкой волна {k}, а не {want}", flush=True)
             return None
         key = row and (row["Бомб"], row.get("Здоровье"), row.get("Броня"))
-        if key and key == last:
+        if key and (key == last or last is None and ok and ok(row)):
             return row
         last = key
-        time.sleep(0.5)
+        time.sleep(0.2)  # было 0.5 (Иван, 26.10)
     return None
 
 
@@ -391,6 +392,23 @@ def to_limit(h, k, x, y, limit, row, min_cap=20):
         return _to_limit(h, k, x, y, limit, row, keys, min_cap)
 
 
+def _same(first, step, way):
+    """Прирост step такой же, как у первого щелчка (±10%). Множитель — сравниваю показатели степени:
+    при множителе 1.001 отношение самих множителей ничего не ловит."""
+    grow = [c for c in first if first[c][1] > 0]
+    if way == "mult":
+        return all(first[c][0] > 1 and step[c][0] > 0 and abs(math.log(step[c][0]) / math.log(first[c][0]) - 1) <= 0.1
+                   for c in grow)
+    return all(abs(step[c][1] / first[c][1] - 1) <= 0.1 for c in grow)
+
+
+def same_step(first, prev, new, way):
+    """Чтение new после щелчка сошлось с приростом первого щелчка — верю ему без второго чтения."""
+    if not new or any(not new.get(c) or not prev.get(c) for c in first):
+        return False
+    return _same(first, {c: (new[c] / prev[c], new[c] - prev[c]) for c in first}, way)
+
+
 def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
     first, way, cap, n = None, None, None, 0
     while max(row[c] for c in keys) <= limit:
@@ -400,8 +418,8 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         hit(h, x, y)
         n += 1
         CTX.update(stage="щелчок", wave=k, click=n)
-        time.sleep(1.0)
-        new = steady(h, x, y, k)
+        time.sleep(0.3)  # было 1.0 (Иван, 26.10)
+        new = steady(h, x, y, k, ok=way and (lambda r, prev=row: same_step(first, prev, r, way)))
         # «126» бомб читалось как «16» (волны 153, 155, 26.10) — рост здоровья/брони тоже считается броском
         thrown = new and ((None not in (new["Бомб"], row["Бомб"]) and new["Бомб"] > row["Бомб"])
                           or any(new[c] > row[c] for c in keys if new.get(c)))
@@ -417,9 +435,7 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         if not grow:
             print(f"волна {k}: бросок не растит здоровье и броню — стоп", flush=True)
             break
-        # множитель: сравниваю показатели степени — при множителе 1.001 отношение самих множителей ничего не ловит
-        mult = all(first[c][0] > 1 and abs(math.log(step[c][0]) / math.log(first[c][0]) - 1) <= 0.1 for c in grow)
-        add = all(abs(step[c][1] / first[c][1] - 1) <= 0.1 for c in grow)
+        mult, add = (_same(first, step, w) for w in ("mult", "add"))
         if way is None:
             way = "mult" if mult else "add" if add else None
             if way is None:
