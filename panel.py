@@ -286,7 +286,7 @@ def loop(interval):
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
         pbtn[name].config(text=f"{name}: {x},{y}")
 
-    for name in "ABCDE":  # E — пустое место, куда увести курсор в конце (без щелчка)
+    for name in "ABCDE":  # E — пустое место, куда увести курсор в конце и щёлкнуть
         p = mc["points"].get(name)
         pbtn[name] = tk.Button(prow, text=f"{name}: {p[0]},{p[1]}" if p else f"{name}: задать",
                                command=lambda n=name: capture(n))
