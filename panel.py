@@ -207,7 +207,7 @@ def loop(interval):
     ebox.pack(fill="x", padx=8, pady=2)
     evars = {"mode": tk.StringVar(value=str(eopt["mode"]))}
     rows = {}
-    for v, text in (("1500", "1500 — камнем 1-го уровня, 6 бросков по 250 бомб"),
+    for v, text in (("1500", "Броски — камнем 1-го уровня, сколько бросков по сколько бомб"),
                     ("limit", "Лимит — камнем из ячейки «камень 61», пока здоровье или броня ≤ порога"),
                     ("hp", "Хитпоинты — камнем 1-го уровня по 250, пока здоровье ≤ порога; броня сколько выйдет")):
         tk.Radiobutton(ebox, text=text, value=v, variable=evars["mode"], anchor="w").pack(fill="x")
@@ -215,9 +215,9 @@ def loop(interval):
         rows[v].pack(fill="x", padx=(24, 0))
     rows["common"] = tk.Frame(ebox)
     rows["common"].pack(fill="x")
-    where = {"grade": ("limit", "уровень камня"), "limit": ("limit", "порог"),
+    where = {"throws": ("1500", "бросков"), "per": ("1500", "бомб за бросок (как на кнопке в игре)"), "grade": ("limit", "уровень камня"), "limit": ("limit", "порог"),
              "hp_limit": ("hp", "порог"), "min_cap": ("common", "Лимит и хитпоинты: щелчков не меньше")}
-    for key, text, width, cast in (("mode", None, 0, str), ("grade", None, 4, int), ("limit", None, 8, float),
+    for key, text, width, cast in (("mode", None, 0, str), ("throws", None, 4, int), ("per", None, 6, int), ("grade", None, 4, int), ("limit", None, 8, float),
                                    ("hp_limit", None, 8, float), ("min_cap", None, 4, int)):
         if key != "mode":
             sub, text = rows[where[key][0]], where[key][1]

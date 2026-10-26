@@ -22,13 +22,12 @@ from tooltip_table import WAVE_NO, parse
 HERE = Path(__file__).parent
 EMPTY = (560, 480)  # точка без подсказки — увести курсор
 PAUSE = 1.0  # с между щелчками-бросками
-BOMBS = 1500  # цель: бомб на волну (6 бросков по 250)
 YELLOW = 0.4  # доля жёлтого на кнопке бомбы: с Shift 0.80, без 0.00 (19.10)
-PER = 250  # бомб за щелчок — стоит на кнопке Throw Gem Bomb
 SLOT = (1052, 467)
 # digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
 # пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
-SETTINGS = {"mode": "1500", "limit": 1e61, "hp_limit": 1e60, "grade": 69, "min_cap": 20}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
+# throws/per — режим «1500»: бросков на волну и бомб за бросок (per — как стоит на кнопке Throw Gem Bomb, 26.10)
+SETTINGS = {"mode": "1500", "throws": 6, "per": 250, "limit": 1e61, "hp_limit": 1e60, "grade": 69, "min_cap": 20}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
 STOP = threading.Event()  # «Стоп пульта»: злость идёт в своём потоке и проверяет флаг перед каждым действием
@@ -379,7 +378,7 @@ def steady(h, x, y, want, tries=6, ok=None):
     return None
 
 
-# режим hp (Иван, 26.10): камень 1 по PER штук щелчок за щелчком, пока здоровье не превысит hp_limit; броня — сколько выйдет
+# режим hp (Иван, 26.10): камень 1 по per штук (сколько на кнопке) щелчок за щелчком, пока здоровье не превысит hp_limit; броня — сколько выйдет
 LIMIT = {"limit": lambda o: o["limit"], "hp": lambda o: o["hp_limit"]}
 KEYS = {"limit": ("Здоровье", "Броня"), "hp": ("Здоровье",)}
 
@@ -499,7 +498,7 @@ def throw_copy(h, src, points, want):
 
 
 def enrage_all():
-    """Длинным волнам на экране — добросить до BOMBS бомб; брошенное читается из подсказки («N gem bombs dropped»).
+    """Длинным волнам на экране — кинуть throws бросков по per бомб; брошенное читается из подсказки («N gem bombs dropped»).
     Все щелчки — одним зажатием Shift (Иван: шифтом бросаем во все волны)."""
     cfg = json.load(open(HERE / "digit_grab.json", encoding="utf-8"))
     h = capture.find_window(cfg["title"])
@@ -561,7 +560,7 @@ def _enrage(h, gems, opt):
         if opt["mode"] in LIMIT and above(row, opt):
             print(f"волна {k}: уже выше {LIMIT[opt['mode']](opt):g} — не злю", flush=True)  # и паузы нет (Иван, 23.10)
             continue
-        n = round(BOMBS / PER)
+        n = int(opt["throws"])
         if n > 0:
             plan.append((k, x, y, n, row))
     capture.hover(h, *EMPTY)
@@ -590,7 +589,7 @@ def _enrage(h, gems, opt):
                 plan = [p[:4] for p in plan]
                 with open(THROWN_LOG, "a", encoding="utf-8") as f:
                     for k, x, y, n in plan:
-                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{PER}\n")
+                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\t{opt['per']}\n")
                 if plan:
                     throw(h, [(x, y) for k, x, y, n in plan for _ in range(n)])
         finally:
