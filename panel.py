@@ -202,19 +202,28 @@ def loop(interval):
         gbtn[name].pack(side="left", padx=2)
     # настройки злости на экране (Иван, 23.10); enrage_all перечитывает файл перед каждой злостью
     eopt = {**enrage.SETTINGS, **cfg.setdefault("enrage", {})}
-    orow = tk.Frame(root)
-    orow.pack(fill="x", padx=8)
-    evars = {}
-    evars["mode"] = tk.StringVar(value=str(eopt["mode"]))  # режим — переключателем, а не надписью (Иван, 26.10)
-    for v, text in (("1500", "1500"), ("limit", "лимит"), ("hp", "хитпоинты")):
-        tk.Radiobutton(orow, text=text, value=v, variable=evars["mode"]).pack(side="left")
-    for key, text, width, cast in (("mode", None, 0, str), ("limit", "порог", 8, float),
-                                   ("hp_limit", "порог hp", 8, float),
-                                   ("grade", "уровень камня", 4, int), ("min_cap", "щелчков не меньше", 4, int)):
-        if text:
-            tk.Label(orow, text=text).pack(side="left")
+    # рамка «Злость волн»: строка на алгоритм, у каждого свои настройки (Иван, 26.10)
+    ebox = tk.LabelFrame(root, text="Злость волн — как злить")
+    ebox.pack(fill="x", padx=8, pady=2)
+    evars = {"mode": tk.StringVar(value=str(eopt["mode"]))}
+    rows = {}
+    for v, text in (("1500", "1500 — камнем 1-го уровня, 6 бросков по 250 бомб"),
+                    ("limit", "Лимит — камнем из ячейки «камень 61», пока здоровье или броня ≤ порога"),
+                    ("hp", "Хитпоинты — камнем 1-го уровня по 250, пока здоровье ≤ порога; броня сколько выйдет")):
+        tk.Radiobutton(ebox, text=text, value=v, variable=evars["mode"], anchor="w").pack(fill="x")
+        rows[v] = tk.Frame(ebox)
+        rows[v].pack(fill="x", padx=(24, 0))
+    rows["common"] = tk.Frame(ebox)
+    rows["common"].pack(fill="x")
+    where = {"grade": ("limit", "уровень камня"), "limit": ("limit", "порог"),
+             "hp_limit": ("hp", "порог"), "min_cap": ("common", "Лимит и хитпоинты: щелчков не меньше")}
+    for key, text, width, cast in (("mode", None, 0, str), ("grade", None, 4, int), ("limit", None, 8, float),
+                                   ("hp_limit", None, 8, float), ("min_cap", None, 4, int)):
+        if key != "mode":
+            sub, text = rows[where[key][0]], where[key][1]
+            tk.Label(sub, text=text).pack(side="left")
             evars[key] = tk.StringVar(value=f"{eopt[key]:g}" if key in ("limit", "hp_limit") else str(eopt[key]))
-            tk.Entry(orow, textvariable=evars[key], width=width).pack(side="left", padx=(2, 8))
+            tk.Entry(sub, textvariable=evars[key], width=width).pack(side="left", padx=(2, 8))
 
         def save_eopt(*_, key=key, cast=cast):
             try:
