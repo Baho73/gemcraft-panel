@@ -402,8 +402,9 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         CTX.update(stage="щелчок", wave=k, click=n)
         time.sleep(1.0)
         new = steady(h, x, y, k)
-        thrown = (new["Бомб"] > row["Бомб"] if new and None not in (new["Бомб"], row["Бомб"])
-                  else new and any(new[c] > row[c] for c in keys if new.get(c)))
+        # «126» бомб читалось как «16» (волны 153, 155, 26.10) — рост здоровья/брони тоже считается броском
+        thrown = new and ((None not in (new["Бомб"], row["Бомб"]) and new["Бомб"] > row["Бомб"])
+                          or any(new[c] > row[c] for c in keys if new.get(c)))
         if not new or any(not new.get(c) for c in keys) or not thrown:
             print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
             break
