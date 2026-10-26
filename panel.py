@@ -205,12 +205,16 @@ def loop(interval):
     orow = tk.Frame(root)
     orow.pack(fill="x", padx=8)
     evars = {}
-    for key, text, width, cast in (("mode", "режим (limit / hp / 1500)", 6, str), ("limit", "порог", 8, float),
+    evars["mode"] = tk.StringVar(value=str(eopt["mode"]))  # режим — переключателем, а не надписью (Иван, 26.10)
+    for v, text in (("1500", "1500"), ("limit", "лимит"), ("hp", "хитпоинты")):
+        tk.Radiobutton(orow, text=text, value=v, variable=evars["mode"]).pack(side="left")
+    for key, text, width, cast in (("mode", None, 0, str), ("limit", "порог", 8, float),
                                    ("hp_limit", "порог hp", 8, float),
                                    ("grade", "уровень камня", 4, int), ("min_cap", "щелчков не меньше", 4, int)):
-        tk.Label(orow, text=text).pack(side="left")
-        evars[key] = tk.StringVar(value=f"{eopt[key]:g}" if key in ("limit", "hp_limit") else str(eopt[key]))
-        tk.Entry(orow, textvariable=evars[key], width=width).pack(side="left", padx=(2, 8))
+        if text:
+            tk.Label(orow, text=text).pack(side="left")
+            evars[key] = tk.StringVar(value=f"{eopt[key]:g}" if key in ("limit", "hp_limit") else str(eopt[key]))
+            tk.Entry(orow, textvariable=evars[key], width=width).pack(side="left", padx=(2, 8))
 
         def save_eopt(*_, key=key, cast=cast):
             try:
