@@ -28,7 +28,7 @@ PER = 250  # бомб за щелчок — стоит на кнопке Throw G
 SLOT = (1052, 467)
 # digit_grab.json → "enrage": mode "1500" — 6 бросков камнем 1; "limit" — камнем grade из ячейки «камень 61»,
 # пока здоровье или броня волны не превысят limit (Иван, 22.10). grade — и для искр (21.10: 69, не 61)
-SETTINGS = {"mode": "1500", "limit": 1e61, "grade": 69, "min_cap": 20}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
+SETTINGS = {"mode": "1500", "limit": 1e61, "hp_limit": 1e60, "grade": 69, "min_cap": 20}  # D кладёт копию камня в правую нижнюю ячейку инвентаря (Иван, 20.10)
 
 
 STOP = threading.Event()  # «Стоп пульта»: злость идёт в своём потоке и проверяет флаг перед каждым действием
@@ -379,12 +379,22 @@ def steady(h, x, y, want, tries=6, ok=None):
     return None
 
 
-def to_limit(h, k, x, y, limit, row, min_cap=20):
+# режим hp (Иван, 26.10): камень 1 по PER штук щелчок за щелчком, пока здоровье не превысит hp_limit; броня — сколько выйдет
+LIMIT = {"limit": lambda o: o["limit"], "hp": lambda o: o["hp_limit"]}
+KEYS = {"limit": ("Здоровье", "Броня"), "hp": ("Здоровье",)}
+
+
+def above(row, opt):
+    """Волна уже выше порога своего режима."""
+    return max(row.get(c) or 0 for c in KEYS[opt["mode"]]) > LIMIT[opt["mode"]](opt)
+
+
+def to_limit(h, k, x, y, limit, row, min_cap=20, keys=("Здоровье", "Броня")):
     """Щелчок за щелчком в волну k, пока здоровье или броня не превысят limit (Иван, 22.10); row — подсказка
     из обхода волн до камня. Предохранитель: прирост от щелчка 1 и 2 должен совпасть (±10%) — по нему число
     щелчков до порога +10%; дальше каждый щелчок сверяется с этим приростом. Не так — стоп.
+    keys — что сравнивать с limit: режим hp — только здоровье (Иван, 26.10).
     Возвращает (щелчков, строка подсказки)."""
-    keys = ("Здоровье", "Броня")
     if not row or any(not row.get(c) for c in keys):
         print(f"волна {k}: здоровье/броня не прочитаны — не кидаю", flush=True)
         return 0, row
@@ -426,7 +436,7 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
         if not new or not new.get("Здоровье") or not thrown:
             print(f"волна {k}: после щелчка {n} подсказка не та ({new}) — стоп", flush=True)
             break
-        if not new.get("Броня"):  # броня не прочиталась — идти по здоровью, броню досчитать по приросту (26.10)
+        if "Броня" in keys and not new.get("Броня"):  # броня не прочиталась — идти по здоровью, броню досчитать по приросту (26.10)
             if not (way and row.get("Броня") and same_step({"Здоровье": first["Здоровье"]}, row, new, way)):
                 print(f"волна {k}: после щелчка {n} броня не прочитана — стоп", flush=True)
                 break
@@ -548,15 +558,15 @@ def _enrage(h, gems, opt):
         b = row["Бомб"]
         if b > 0:  # бомбы в волне уже есть — не трогать, добрасывать нельзя (Иван, 21.10)
             continue
-        if opt["mode"] == "limit" and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]:
-            print(f"волна {k}: уже выше {opt['limit']:g} — не злю", flush=True)  # и паузы нет (Иван, 23.10)
+        if opt["mode"] in LIMIT and above(row, opt):
+            print(f"волна {k}: уже выше {LIMIT[opt['mode']](opt):g} — не злю", flush=True)  # и паузы нет (Иван, 23.10)
             continue
         n = round(BOMBS / PER)
         if n > 0:
             plan.append((k, x, y, n, row))
     capture.hover(h, *EMPTY)
-    lim = opt["mode"] == "limit"
-    src, want = ("61", opt["grade"]) if lim else ("1", 1)
+    lim = opt["mode"] in LIMIT
+    src, want = ("61", opt["grade"]) if opt["mode"] == "limit" else ("1", 1)
     if plan and src not in gems:
         print("волны", [p[0] for p in plan], f"— не задано место камня {src}, пропуск")  # чем бросать — не проверить
         plan = []
@@ -568,12 +578,12 @@ def _enrage(h, gems, opt):
             if lim:
                 done = []
                 for k, x, y, n, row in plan:
-                    n, row = to_limit(h, k, x, y, opt["limit"], row, int(opt["min_cap"]))
+                    n, row = to_limit(h, k, x, y, LIMIT[opt["mode"]](opt), row, int(opt["min_cap"]), KEYS[opt["mode"]])
                     done.append((k, x, y, n))
                     with open(THROWN_LOG, "a", encoding="utf-8") as f:
-                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {opt['limit']:g}"
+                        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{k}\t{n}\tкамень {want} до {LIMIT[opt['mode']](opt):g}"
                                 f"\t{row and (row['Бомб'], row.get('Здоровье'), row.get('Броня'))}\n")
-                    if not (row and max(row.get("Здоровье") or 0, row.get("Броня") or 0) > opt["limit"]):
+                    if not (row and above(row, opt)):
                         raise RuntimeError(f"волна {k}: порог не достигнут за {n} щелчков — стоп")
                 plan = done
             else:
