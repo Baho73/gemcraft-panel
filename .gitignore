@@ -34,3 +34,8 @@ numnet/data/
 restart.flag
 enrage.flag
 burst/
+# служебное Windows/Claude — не код проекта
+ClaudeTranscriptsBackup.xml
+SyncWatch-blanki.xml
+fix-silent-robocopy.ps1
+fix-silent-tasks.ps1
