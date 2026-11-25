@@ -44,6 +44,7 @@
       <Command>python digit_grab.py test</Command>
       <Scenario>success: старт цепочки — один пробел паузы через политику, политика в режиме цепочки.</Scenario>
       <Scenario>failure: игру сняли с паузы посреди цепочки — цепочка остановлена, ни одного действия и пробела не отправлено.</Scenario>
+      <Scenario>success: no_pause — цепочка на ходу без пробела паузы и снятия; пауза посреди — стоп без действий и пробелов.</Scenario>
       <TestFiles>
         <File>chain.py</File>
       </TestFiles>
@@ -53,6 +54,7 @@
       <Command>python digit_grab.py test</Command>
       <Scenario>success: окно запускается, freeze/stats.tsv обновляется каждую секунду, в digit_errors.log нет новых ошибок (живая проверка).</Scenario>
       <Scenario>success: по digit_events.tsv нет двух пробелов в пределах ожидания отклика; отложенные события дают паузу после цепочки.</Scenario>
+      <Scenario>success: жёлтый водоворот с галочкой «бросать в водоворот» — пауза, 2 копии камня из ячейки в каждый жёлтый водоворот, пауза снята; ошибок в digit_errors.log нет (живая проверка).</Scenario>
       <TestFiles>
         <File>panel.py</File>
       </TestFiles>

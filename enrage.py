@@ -467,26 +467,32 @@ def _to_limit(h, k, x, y, limit, row, keys, min_cap=20):
 
 
 def throw_copy(h, src, points, want):
-    """Маленьким волнам — по одному камню (Иван, 20.10): навести на камень src, D — копия ложится в SLOT,
-    B, перетащить копию на волну. Оригинал остаётся на месте."""
+    """Маленьким волнам — по одному камню (Иван, 20.10)."""
+    throw_copies(h, src, points, want, times=1)
+
+
+def throw_copies(h, src, points, want, times=2):
+    """Бросок times копий камня в каждую точку (маленькие волны, водовороты): навести на камень src, D — копия
+    ложится в SLOT, B, перетащить копию на точку. Оригинал остаётся на месте (Иван, 20.10; водоворот — 25.11)."""
     was_pos, was_fg = win32gui.GetCursorPos(), win32gui.GetForegroundWindow()
     focus(h)
     try:
         for x, y in points:
-            set_bomb(h, False)
-            must_grade(h, src, want)
-            capture.real_hover(h, *src)
-            time.sleep(0.3)
-            sx, sy = SLOT
-            before = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
-            press(0x44, 0x20)  # D
-            time.sleep(0.4)
-            after = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
-            if cv2.absdiff(before, after).mean() < 10:
-                raise RuntimeError("копия камня не появилась в правой нижней ячейке")
-            if not set_bomb(h, True):
-                raise RuntimeError("режим бомбы не включился")
-            drag(h, SLOT, (x, y))
+            for _ in range(times):
+                set_bomb(h, False)
+                must_grade(h, src, want)
+                capture.real_hover(h, *src)
+                time.sleep(0.3)
+                sx, sy = SLOT
+                before = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
+                press(0x44, 0x20)  # D
+                time.sleep(0.4)
+                after = snap(h)[sy - 10:sy + 10, sx - 10:sx + 10]
+                if cv2.absdiff(before, after).mean() < 10:
+                    raise RuntimeError("копия камня не появилась в правой нижней ячейке")
+                if not set_bomb(h, True):
+                    raise RuntimeError("режим бомбы не включился")
+                drag(h, SLOT, (x, y))
     finally:
         set_bomb(h, False)
         ctypes.windll.user32.SetCursorPos(*was_pos)

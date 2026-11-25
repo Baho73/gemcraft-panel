@@ -107,6 +107,7 @@ def loop(interval):
             chain.stop("кнопка «Стоп пульта»")
             enrage.STOP.set()  # идущая злость встаёт перед следующим действием
             st["enraging"], st["enrage_due"] = None, False  # ждущая злость не начнётся (ревью 1, №3)
+            st["swirl_pending"] = None  # ждущий бросок в водоворот не начнётся
             policy.hold_on()
             hold_btn.config(text="Пульт на стопе — нажать, чтобы продолжить", bg="#9e9e9e")
             print(time.strftime("%H%M%S"), "ПУЛЬТ: стоп — цепочка оборвана, отложенное сброшено, игра на паузу",
@@ -244,6 +245,27 @@ def loop(interval):
                    command=lambda: save_pause()).pack(side="left")
     swirl_now = tk.StringVar(value="")
     tk.Label(srow, textvariable=swirl_now, fg="gray30").pack(side="left", padx=6)
+    # бросок в жёлтый водоворот: ячейка камня и уровень (25.11)
+    checks["swirl_throw"] = tk.BooleanVar(value=pause.get("swirl_throw", False))
+    strow = tk.Frame(root)
+    strow.pack(fill="x", padx=8)
+    tk.Checkbutton(strow, text="В водоворот бросать камень (2 раза)", variable=checks["swirl_throw"],
+                   command=lambda: save_pause()).pack(side="left")
+    sp = gems.get("swirl")
+    gbtn["swirl"] = tk.Button(strow, text=f"камень: {sp[0]},{sp[1]}" if sp else "камень: задать",
+                              command=lambda: gem_spot("swirl"))
+    gbtn["swirl"].pack(side="left", padx=4)
+    swirl_grade_var = tk.StringVar(value=str(cfg.get("swirl_grade", 1)))
+    tk.Label(strow, text="уровень").pack(side="left")
+    tk.Entry(strow, textvariable=swirl_grade_var, width=4).pack(side="left")
+
+    def save_swirl_grade(*_):
+        try:
+            cfg["swirl_grade"] = int(swirl_grade_var.get().strip())
+        except ValueError:
+            return
+        CFG.write_text(json.dumps(cfg), encoding="utf-8")
+    swirl_grade_var.trace_add("write", save_swirl_grade)
     swirl_ev = {}  # место на поле -> детектор появления (у каждого водоворота своё)
     for k in icons:
         for kind, text in (("full", "заполнен (жёлтая рамка)"), ("plus", "получил первый плюс")):
@@ -295,6 +317,8 @@ def loop(interval):
     trow.pack(fill="x", padx=8)
     real_var = tk.BooleanVar(value=mc.get("real_mouse", True))
     tk.Checkbutton(trow, text="настоящий курсор", variable=real_var).pack(side="left")
+    no_pause_var = tk.BooleanVar(value=mc.get("no_pause", False))
+    tk.Checkbutton(trow, text="без паузы (на ходу)", variable=no_pause_var).pack(side="left")
     # Иван, 11.10: цепочка не должна отнимать мышь — наводим сообщением; галочка — если игра так не понимает
     hover_real_var = tk.BooleanVar(value=mc.get("hover_real", False))
 
@@ -350,12 +374,13 @@ def loop(interval):
             return default
 
     def save_macro(*_):
-        mc.update(real_mouse=real_var.get(), step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
+        mc.update(real_mouse=real_var.get(), no_pause=no_pause_var.get(),
+                  step_gap=secs(gap_var, STEP_GAP), hover_wait=secs(wait_var, HOVER_WAIT),
                   freeze_delay=secs(fdelay_var, 1.0), freeze_pct=secs(sat_var, FREEZE_SAT),
                   space_wait=secs(reply_var, SPACE_WAIT))
         CFG.write_text(json.dumps(cfg), encoding="utf-8")
         policy.wait = secs(reply_var, SPACE_WAIT)
-    for v in (real_var, gap_var, wait_var, fdelay_var, sat_var, reply_var):
+    for v in (real_var, no_pause_var, gap_var, wait_var, fdelay_var, sat_var, reply_var):
         v.trace_add("write", save_macro)
     # START_BLOCK_CHAIN_WIRING
     # политика паузы — единственная, кто жмёт пробел; цепочка — свои шаги, пробелы через политику
@@ -389,7 +414,7 @@ def loop(interval):
         return None
 
     chain = Chain(hwnd, policy, mc["points"],
-                  lambda: {"real": real_var.get(), "hover_real": hover_real_var.get(),"gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
+                  lambda: {"real": real_var.get(), "hover_real": hover_real_var.get(), "no_pause": no_pause_var.get(), "gap": secs(gap_var, STEP_GAP), "wait": secs(wait_var, HOVER_WAIT)},
                   lambda: st.get("state"), root.after, mlog, lambda text: status.set(text),
                   on_change=lambda on: mbtn.config(text="Стоп цепочки" if on else "Пуск цепочки"),
                   after_click=after_click, blocker=blocker)
@@ -498,7 +523,8 @@ def loop(interval):
         """Один кадр. Любая ошибка внутри не должна останавливать опрос (так 6.10 в 01:29 встало всё: паузы,
         цепочка) — пишем её и продолжаем со следующего кадра."""
         flag = HERE / "restart.flag"  # Claude просит закрыться для перезапуска (Иван, 23.10) — только между делами
-        if flag.exists() and st.get("enrage_job") is None and not st.get("enrage_due") and not chain.on:
+        if (flag.exists() and st.get("enrage_job") is None and st.get("swirl_job") is None
+                and not st.get("enrage_due") and not st.get("swirl_pending") and not chain.on):
             flag.unlink()
             print(time.strftime("%H%M%S"), "ПУЛЬТ: закрываюсь по restart.flag", flush=True)
             root.destroy()
@@ -545,11 +571,32 @@ def loop(interval):
             policy.chain_end()
         return False
 
+    def swirl_wait(stamp):
+        """Бросок в водоворот идёт своим потоком. Кончился — снять паузу (или оставить при ошибке)."""
+        job = st["swirl_job"]
+        if not job.get("done"):
+            status.set("бросок в водоворот идёт")
+            return True
+        st["swirl_job"] = None
+        err = job.get("err")
+        if err:
+            print(stamp, "ВОДОВОРОТ: ошибка, игра оставлена на паузе:", err, flush=True)
+            winsound.MessageBeep()
+            policy.chain_end(paused=True)
+        else:
+            print(stamp, "ВОДОВОРОТ: готово, снимаю паузу", flush=True)
+            policy.chain_space("run")
+            policy.chain_end()
+        return False
+
     def step_inner():
         t = time.time()
         stamp = time.strftime("%H%M%S", time.localtime(t)) + f"_{int(t * 1000) % 1000:03d}"
         if st.get("enrage_job") is not None and enrage_wait(stamp):
             root.after(200, step)  # злость двигает мышь и снимает кадры сама — пульт не мешает
+            return
+        if st.get("swirl_job") is not None and swirl_wait(stamp):
+            root.after(200, step)  # бросок в водоворот двигает мышь — пульт не мешает
             return
         try:
             if screen_var.get():
@@ -633,13 +680,25 @@ def loop(interval):
                     mlog(f"ждёт: {why}")
             st["chain_why"] = why
         # значки стоят на месте; //8 — на дрожь в пиксель. Самый дорогой детектор (12 мс) — только с галочкой (ревью 1, №10)
-        found = {(x // 8, y // 8) for x, y in swirls(full)} if checks["swirl"].get() else set()
+        swirl_pts = swirls(full) if (checks["swirl"].get() or checks["swirl_throw"].get()) else []
+        found = {(x // 8, y // 8) for x, y in swirl_pts}
         swirl_now.set(f"сейчас: {len(found)}")
         st["swirls"] = len(found)
         for key in found - swirl_ev.keys():
             swirl_ev[key] = filled(confirm=2, release=30)  # снаряды заслоняют на миг — «снова нет» только через 3 с
         for key, det in swirl_ev.items():
-            if det(key in found) and checks["swirl"].get():
+            if not det(key in found):
+                continue
+            if checks["swirl_throw"].get():
+                # бросок 2 копий: пауза -> поток -> снять паузу (по мере пожелтения каждого водоворота)
+                if (not st.get("swirl_pending") and not chain.on and not policy.hold and not policy.busy()
+                        and st.get("state") == "run" and t - st["start"] >= 1.0):
+                    policy.chain_begin()
+                    policy.chain_space("pause")
+                    st["swirl_pending"] = t
+                    st["swirl_points"] = [(x + 14, y + 14) for x, y in swirl_pts]
+                    print(stamp, f"ВОДОВОРОТ: жёлтая рамка ({key[0] * 8},{key[1] * 8}) — пауза, бросаю 2 камня", flush=True)
+            elif checks["swirl"].get():
                 event(stamp, t, f"водоворот в жёлтой рамке ({key[0] * 8},{key[1] * 8})", "swirl", key[0] * 8, key[1] * 8)
         if st.get("state") == "pause":  # Иван: блоки искать только на паузе — полоса стоит, разделители чёткие
             st["blocks"] = wave_blocks(full)  # блоки полосы волн с центрами — потом по ним щёлкать
@@ -700,6 +759,28 @@ def loop(interval):
         elif st.get("enraging") and t - st["enraging"] > policy.wait + 5:
             print(stamp, "ЗЛОСТЬ: игра не встала на паузу — отменено", flush=True)
             st["enraging"] = None
+            policy.chain_end()
+        if st.get("swirl_pending") and st.get("state") == "pause" and not policy.busy() and not policy.hold:
+            points = st.get("swirl_points") or []
+            st["swirl_pending"] = None
+            src, grade = gems.get("swirl"), int(cfg.get("swirl_grade", 1))
+            if not src or not points:
+                policy.chain_space("run")
+                policy.chain_end()
+                print(stamp, "ВОДОВОРОТ: нет ячейки камня или водоворотов — паузу снимаю", flush=True)
+            else:
+                box = st["swirl_job"] = {}
+
+                def job():
+                    try:
+                        enrage.throw_copies(hwnd, src, points, grade, times=2)
+                    except BaseException as e:  # и SystemExit: пульт не закрывать
+                        box["err"] = e
+                    box["done"] = True
+                threading.Thread(target=job, daemon=True).start()
+        elif st.get("swirl_pending") and t - st["swirl_pending"] > policy.wait + 5:
+            print(stamp, "ВОДОВОРОТ: игра не встала на паузу — отменено", flush=True)
+            st["swirl_pending"] = None
             policy.chain_end()
         x, y, w, h = cfg["roi"]
         bgr = full[y:y + h, x:x + w]

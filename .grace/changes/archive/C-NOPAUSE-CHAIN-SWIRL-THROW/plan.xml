@@ -1,0 +1,115 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-NOPAUSE-CHAIN-SWIRL-THROW>
+    <IntentSummary>Добавить в пульт две фичи: галочку «цепочка без паузы» (цепочка заморозки на ходу) и автобросок двух копий камня в жёлтый водоворот (с паузой, по мере пожелтения каждого). Правки: chain.py (режим no_pause), panel.py (галочки, ячейка камня, запуск потока), enrage.py (бросок N копий в точки). Обновить граф (Summary M-CHAIN, M-PANEL) и верификацию (V-M-CHAIN, V-M-PANEL).</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CHAIN</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-PANEL</Value>
+      </MustExist>
+      <MustExist>
+        <Value>chain.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>panel.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>enrage.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>detectors.py</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-CHAIN</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-PANEL</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command>python digit_grab.py test</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CHAIN />
+        <M-PANEL />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CHAIN />
+        <V-M-PANEL />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>chain.py</File>
+      <File>panel.py</File>
+      <File>enrage.py</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>chain.py: режим no_pause — шаги без pause/resume, guard по ходу игры</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Chain читает флаг no_pause из settings(); при True steps() не содержит «pause» и «resume».</Criterion>
+          <Criterion>При no_pause шаги идут только при состоянии «run»; если игра встала на паузу или кнопок не видно посреди — стоп без действий.</Criterion>
+          <Criterion>При no_pause не отправляется ни один пробел через policy.chain_space.</Criterion>
+          <Criterion>При no_pause=False поведение не меняется (self_check проходит как раньше).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>panel.py: галочка «цепочка без паузы» и проброс no_pause в Chain</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Галочка в блоке цепочки сохраняется в cfg["macro"]["no_pause"] и восстанавливается при запуске.</Criterion>
+          <Criterion>settings(), передаваемый в Chain, отдаёт no_pause из галочки.</Criterion>
+          <Criterion>Выключена — цепочка ведёт себя как раньше.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>enrage.py: бросок N копий камня в точки (для водоворотов)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Новая функция бросает в каждую точку N копий камня из ячейки src: дублирование D в слот, перетаскивание на точку; оригинал остаётся на месте.</Criterion>
+          <Criterion>Перед броском проверяется уровень камня (must_grade); не тот уровень — ошибка, бросок не идёт.</Criterion>
+          <Criterion>После — режим бомбы выключен, фокус и курсор возвращены.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>panel.py: автобросок 2 копий в жёлтый водоворот (галочка, ячейка, поток)</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Галочка «бросать в жёлтый водоворот», кнопка-ячейка камня и поле уровня сохраняются в digit_grab.json и восстанавливаются.</Criterion>
+          <Criterion>При появлении жёлтого водоворота (detectors.swirls) и включённой галочке: пауза через policy (chain_begin + chain_space), в потоке бросок 2 копий в каждый текущий жёлтый водоворот, затем снятие паузы (chain_space + chain_end).</Criterion>
+          <Criterion>Несколько водоворотов — каждый по мере пожелтения; обработанный не трогается повторно (filled с release).</Criterion>
+          <Criterion>Выключена — поведение водоворота как сейчас (пауза по галочке swirl).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>GRACE durable: обновить граф (Summary M-CHAIN, M-PANEL) и верификацию (V-M-CHAIN, V-M-PANEL)</Title>
+        <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>graph/main.xml: Summary M-CHAIN и M-PANEL отражают галочку «без паузы» и автобросок в водоворот.</Criterion>
+          <Criterion>verification/main.xml: V-M-CHAIN — сценарий no_pause; V-M-PANEL — сценарий броска в водоворот.</Criterion>
+          <Criterion>Индексы не меняются (новых модулей нет); XML корректен.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python digit_grab.py test</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-NOPAUSE-CHAIN-SWIRL-THROW>
+</GraceChangePlan>

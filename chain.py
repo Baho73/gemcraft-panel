@@ -1,5 +1,6 @@
 # START_MODULE_CONTRACT
-#   PURPOSE: Цепочка постановки заморозки, один раз: пауза -> 1-A, 2-B, 2-C, 3-D (D дважды) -> курсор в E и щелчок -> «.» -> снять паузу.
+#   PURPOSE: Цепочка постановки заморозки, один раз: пауза -> 1-A, 2-B, 2-C, 3-D (D дважды) -> курсор в E и щелчок -> «.» -> снять паузу;
+#            с no_pause (галочка «без паузы») — те же шаги на ходу, без пробела паузы и снятия, шаги идут при «игра идёт».
 #   SCOPE: Пошаговый автомат на таймере окна. Пробелы — только через M-PAUSE-POLICY (chain_space), клавиши и курсор —
 #          через M-CAPTURE. Прерванная цепочка ничего не жмёт и не щёлкает (решение Ивана), только сообщает.
 #   DEPENDS: M-PAUSE-POLICY, M-CAPTURE
@@ -10,6 +11,7 @@
 #   MACRO - шаги цепочки между паузой и снятием паузы
 #   VK - коды клавиш, которые не совпадают с ord(символа)
 #   Chain - автомат: start / stop / tick; on — идёт ли
+#   no_pause - цепочка на ходу: без pause/resume, шаги при «игра идёт» (читается из settings в start)
 #   self_check - прерывание посреди цепочки не шлёт ни одного действия (вызывается из test)
 # END_MODULE_MAP
 from capture import press_key, hover, click, real_hover, real_click
@@ -35,11 +37,11 @@ class Chain:
         self.game, self.schedule, self.log, self.status = game, schedule, log, status
         self.on_change, self.after_click, self.blocker = on_change, after_click, blocker
         self.on, self.i, self.tries = False, 0, 0
+        self.no_pause = False  # галочка «без паузы»: шаги на ходу, без pause/resume (читается из settings в start)
         self.run = 0  # номер прогона: тик старого прогона после стоп+пуск ничего не делает (ревью 1, №5)
 
-    @staticmethod
-    def steps():
-        return [("pause", None)] + MACRO + [("resume", None), ("done", None)]
+    def steps(self):
+        return MACRO + [("done", None)] if self.no_pause else [("pause", None)] + MACRO + [("resume", None), ("done", None)]
 
     # START_CONTRACT: start
     #   PURPOSE: Запустить один прогон, если точки A-D заданы и политика не ждёт отклика на свой пробел.
@@ -57,6 +59,7 @@ class Chain:
         if self.policy.busy():
             self.status("цепочка: жду отклика игры на пробел")  # в строку окна, не в журнал: проверка идёт каждый кадр
             return False
+        self.no_pause = bool(self.settings().get("no_pause"))
         self.on, self.i, self.tries = True, 0, 0
         self.run += 1
         self.policy.chain_begin()
@@ -122,10 +125,11 @@ class Chain:
         elif kind == "done":
             self.stop("выполнена", done=True)
             return
-        elif state != "pause":
-            # игру сняли с паузы посреди цепочки (Иван или прошлый шаг) или паузу не видно (None) — ничего не жать
+        elif state != ("run" if self.no_pause else "pause"):
+            # на ходу: игру поставили на паузу посреди цепочки — ничего не жать; с паузой: сняли — тоже не жать
             prev = self.steps()[self.i - 1]
-            what = "игру сняли с паузы" if state == "run" else "не вижу паузы"
+            what = ("игра не идёт" if state == "pause" else "не вижу кнопок скорости") if self.no_pause \
+                else ("игру сняли с паузы" if state == "run" else "не вижу паузы")
             self.stop(f"{what} (после шага {prev[0]} {prev[1]}) — цепочка прервана")
             return
         elif kind == "key":
@@ -242,4 +246,15 @@ def self_check():
     game[0] = None
     queue.pop(0)()  # клавиша при невидимой паузе
     assert not ch.on and sent == []
+    # no_pause (галочка «без паузы»): шаги на ходу, без пробела паузы и снятия; пауза посреди — стоп без действий
+    pol, queue[:] = Policy(), []
+    ch = Chain(0, pol, {n: [1, 1] for n in "ABCDE"},
+               lambda: {"real": True, "gap": 1, "wait": 1, "no_pause": True}, lambda: game[0],
+               lambda ms, fn: queue.append(fn), lambda *a, **k: None, lambda *a: None)
+    game[0], sent[:] = "run", []
+    assert ch.start("тест") and pol.spaces == [] and pol.chain and sent == ["press_key"]
+    game[0] = "pause"  # Иван поставил паузу посреди
+    sent.clear()
+    queue.pop(0)()  # шаг навести на A — прерывание
+    assert not ch.on and not pol.chain and sent == [] and not queue and pol.spaces == []
 # END_BLOCK_SELF_CHECK
